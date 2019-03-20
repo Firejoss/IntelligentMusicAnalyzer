@@ -20,45 +20,50 @@ int NeuralNetwork::init(int inputVectorSize_, vector<int> intermediateLayersSize
 	// --- BIAS node ---
 	biasNode = new Neuron();
 	biasNode->begin(0);
-	biasNode->setActivationFn(&sigmoidFn);
+	biasNode->setActivationFn(&Neuron::sigmoidFn);
 	biasNode->setOutput(1);
+
+	Serial.println("biasNode initialized");
 
 	// --- INPUTS ---
 	inputNodes.resize(inputVectorSize_);
 
-	for (auto inputNode : inputNodes) {
+	for (auto &inputNode : inputNodes) {
 		inputNode = new Neuron();
 		inputNode->begin(0);
-		inputNode->setActivationFn(&linear);
+		inputNode->setActivationFn(&Neuron::linear);
 	}
+	Serial.println("inputNodes initialized");
 
 	// --- INTERMEDIATE LAYERS ---
-	intermediateLayers.resize(intermediateLayersSizes_.size());
-	
 	for (int i; i < intermediateLayersSizes_.size(); i++) {
 		
-		intermediateLayers[i].resize(intermediateLayersSizes_[i]);
+		vector<Neuron*> intermLayer(intermediateLayersSizes_[i], new Neuron());
+		intermediateLayers.push_back(intermLayer);
+		Serial.print("nodeslayer created, size: ");
+		Serial.println(intermediateLayers[i].size());
 
 		for (int j = 0; j < intermediateLayers[i].size(); j++) {
-			intermediateLayers[i][j] = new Neuron();
-			intermediateLayers[i][j]->begin(0 == j ? inputNodes.size() : intermediateLayers[i-1].size());
-			intermediateLayers[i][j]->setActivationFn(&sigmoidFn);
+			intermediateLayers[i][j]->begin(0 == i ? inputNodes.size() : intermediateLayers[i-1].size());
+			intermediateLayers[i][j]->setActivationFn(&Neuron::sigmoidFn);
 			intermediateLayers[i][j]->connectInputs(inputNodes);
 			intermediateLayers[i][j]->connectInput(biasNode);
 		}
 
 	}
+	Serial.println("layerNodes initialized");
 
 	// --- OUTPUT NODES ---
 	outputNodes.resize(ouputVectorSize_);
 
-	for (auto outputNode : outputNodes) {
+	for (auto &outputNode : outputNodes) {
 		outputNode = new Neuron();
 		outputNode->begin(intermediateLayers.back().size());
-		outputNode->setActivationFn(&sigmoidFn);
+		outputNode->setActivationFn(&Neuron::sigmoidFn);
 		outputNode->connectInputs(intermediateLayers.back());
 		outputNode->connectInput(biasNode);
 	}
+	Serial.println("outputNodes initialized");
 
 	return 0;
 }
@@ -72,7 +77,7 @@ float NeuralNetwork::train(vector<TrainingSet> &trainingData_, float idealError,
 
 		numEpochs++;
 
-		for (auto trainingSet : trainingData_) {
+		for (auto &trainingSet : trainingData_) {
 
 			feedInputs(trainingSet);
 			propagate();
@@ -91,7 +96,7 @@ int NeuralNetwork::feedInputs(TrainingSet &trainingSet) {
 	if (trainingSet.inputValues.size() != this->inputNodes.size()) {
 		return -1;
 	}
-	int inputSize = this->inputNodes.size;
+	int inputSize = this->inputNodes.size();
 	for (int i = 0; i < inputSize; i++) {
 		this->inputNodes[i]->setOutput(trainingSet.inputValues[i]);
 	}
@@ -104,7 +109,7 @@ int NeuralNetwork::propagate() {
 	if (outputNodes.empty()) {
 		return -1;
 	}	
-	for (auto outputNode : outputNodes) {
+	for (auto &outputNode : outputNodes) {
 		outputNode->propagate();
 	}	
 	return 0;
@@ -115,9 +120,9 @@ int NeuralNetwork::feedOutputIdealValues(TrainingSet &trainingSet) {
 	if (trainingSet.idealOutputValues.size() != this->outputNodes.size()) {
 		return -1;
 	}
-	int outputSize = this->outputNodes.size;
+	int outputSize = this->outputNodes.size();
 	for (int i = 0; i < outputSize; i++) {
-		this->outputNodes[i]->setDesiredOutput(trainingSet.idealOutputValues[i]);
+		this->outputNodes[i]->setIdealOutput(trainingSet.idealOutputValues[i]);
 	}
 	return 0;
 }
@@ -127,7 +132,7 @@ int NeuralNetwork::backPropagate() {
 	if (outputNodes.empty()) {
 		return -1;
 	}	
-	for (auto outputNode : outputNodes) {
+	for (auto &outputNode : outputNodes) {
 		outputNode->propagate();
 	}	
 	return 0;
@@ -136,7 +141,7 @@ int NeuralNetwork::backPropagate() {
 
 int NeuralNetwork::adjustWeights() {
 
-	for (auto outputNode : this->outputNodes) {
+	for (auto &outputNode : this->outputNodes) {
 		outputNode->adjWeights();
 	}
 
@@ -144,7 +149,7 @@ int NeuralNetwork::adjustWeights() {
 	
 	for (; rit != this->intermediateLayers.rend(); ++rit) {
 		
-		for (auto intermediateNode : *rit) {
+		for (auto &intermediateNode : *rit) {
 
 			intermediateNode->adjWeights();
 		}

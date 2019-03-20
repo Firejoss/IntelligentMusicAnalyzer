@@ -8,6 +8,38 @@
 #include <Easing.h>
 #include "NeuralNetwork.h"
 
+#ifdef __arm__
+// should use uinstd.h to define sbrk but Due causes a conflict
+extern "C" char* sbrk(int incr);
+#else  // __ARM__
+extern char *__brkval;
+#endif  // __arm__
+
+int freeMemory() {
+	char top;
+#ifdef __arm__
+	return &top - reinterpret_cast<char*>(sbrk(0));
+#elif defined(CORE_TEENSY) || (ARDUINO > 103 && ARDUINO != 151)
+	return &top - __brkval;
+#else  // __arm__
+	return __brkval ? &top - __brkval : &top - __malloc_heap_start;
+#endif  // __arm__
+}
+
+
+namespace std {
+	void __throw_bad_alloc()
+	{
+		Serial.println("Unable to allocate memory");
+	}
+
+	void __throw_length_error(char const*e)
+	{
+		Serial.print("Length Error :");
+		Serial.println(e);
+	}
+}
+
 // --- GENERAL DEFINES ---
 #define ON			1
 #define OFF			0
@@ -39,7 +71,7 @@
 #define NUM_INPUTS		FFT1024_NN_NUM_INPUTS
 #endif
 #define NUM_LAY_1		64
-#define NUM_LAY_2		16
+#define NUM_LAY_2		32
 #define NUM_OUTPUTS		2
 
 NeuralNetwork* bongoNeuralNetwork;
@@ -89,7 +121,6 @@ void pulseLed(int led_pin, float power) {
 
 void addTrainingSet(AudioStream* audioStream, vector<float> desiredOutput) {
 
-	AudioAnalyzeFFT256* fft = nullptr;
 #ifdef FFT256
 	AudioAnalyzeFFT256* fft = static_cast<AudioAnalyzeFFT256*>(audioStream);
 #elif FFT1024
@@ -124,13 +155,6 @@ void initTimer(void) {
 
 //----------------------------------------------------------------------------------------------
 
-float sigmoidFn(float in, byte isDerivative) {
-	return isDerivative == HIGH ? sigmoidDerivative(in) : sigmoid(in);
-}
-float linear(float in, byte isDerivative) {
-	return isDerivative == HIGH ? 1 : in;
-}
-
 void initDisplay() {
 	pinMode(R_PIN, OUTPUT);
 	pinMode(G_PIN, OUTPUT);
@@ -141,27 +165,27 @@ void initDisplay() {
 }
 
 
-void initNN() {
-	bongoNeuralNetwork = new NeuralNetwork();
-}
-
-
 // ----------------------------------------------------
 // ------------------- LOOP & SETUP -------------------
 // ----------------------------------------------------
 
 void setup() {
-	AudioMemory(25);
-	initDisplay();
-
-	// creates the neural network
-	initNN();
 
 #ifdef SERIAL_DEBUG
-	delay(300);
 	Serial.begin(115200);
 #endif
 
+	AudioMemory(25);
+	initDisplay();
+
+	Serial.print("Free SRAM BEFORE NN => ");
+	Serial.println(freeMemory());
+
+	// creates the neural network
+	bongoNeuralNetwork = new NeuralNetwork(NUM_INPUTS, { NUM_LAY_1, NUM_LAY_2 }, NUM_OUTPUTS);
+
+	Serial.print("Free SRAM AFTER NN => ");
+	Serial.println(freeMemory());
 }
 
 void loop() {
@@ -169,7 +193,7 @@ void loop() {
 	// adding a training set to the training database if fft threshold exceeded
 	addTrainingSet(static_cast<AudioStream*>(&fft1), currentBongoRecording);
 
-	bongoNeuralNetwork->train(&trainingData);
+	bongoNeuralNetwork->train(trainingData, 0.5, 1000);
 
 
 

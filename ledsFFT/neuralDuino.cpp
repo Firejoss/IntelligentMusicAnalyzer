@@ -9,7 +9,7 @@ Neuron::Neuron() {
 	prevDelWeight = NULL;
 }
 
-void Neuron::begin(byte num_syn, byte noConnections = FALSE, byte noInputs = FALSE) {
+void Neuron::begin(int num_syn, int noConnections = FALSE, int noInputs = FALSE) {
 	//deallocating previously allocated memory
 	delete input;
 	vector<Neuron*>().swap(inNodes);
@@ -27,8 +27,10 @@ void Neuron::begin(byte num_syn, byte noConnections = FALSE, byte noInputs = FAL
 		synWeight = new float[num_syn];
 		prevDelWeight = new float[num_syn];
 	}
-	randomSeed(analogRead(A0));
-	for (byte i = 0; i < num_syn; i++) {
+
+	// ANALOGREAD not usable when FFT is used... find another seed method later
+	randomSeed(45452/*analogRead(A0)*/);
+	for (int i = 0; i < num_syn; i++) {
 		synWeight[i] = (float)(((float)random(0, 100) / (float)100) - 0.2);
 		prevDelWeight[i] = 0; //important to initialize allocated memory
 	}
@@ -38,7 +40,7 @@ void Neuron::setInput(float inputVals[]) {
 	float sum = 0;
 	inCount = 0; //make sure that inCount is marked as zero for inputNodes
 
-	for (byte i = 0; i < numSynapse; i++) {
+	for (int i = 0; i < numSynapse; i++) {
 		sum = sum + (synWeight[i] * inputVals[i]);
 		input[i] = inputVals[i]; //copying by value
 	}
@@ -49,7 +51,7 @@ void Neuron::setInput(int inputVals[]) {
 	float sum = 0;
 	inCount = 0; //make sure that inCount is marked as zero for inputNodes
 
-	for (byte i = 0; i < numSynapse; i++) {
+	for (int i = 0; i < numSynapse; i++) {
 		sum = sum + (synWeight[i] * inputVals[i]);
 		input[i] = inputVals[i]; //copying by value
 	}
@@ -73,7 +75,7 @@ float Neuron::propagate() {
 		int temp = inCount;
 		while (temp != 0) {
 			temp--;
-			sum = sum + (synWeight[temp] * inNodes[temp]->computeOutput());
+			sum = sum + (synWeight[temp] * inNodes[temp]->propagate());
 		}
 		output = activation(sum, LOW);
 	}
@@ -100,7 +102,7 @@ this function is called on all those nodes that have an input node
 void Neuron::backpropagate() {
 	float myDelta = beta * activation(output, HIGH);
 	if (inCount != 0) {
-		byte temp = inCount;
+		int temp = inCount;
 		while (temp--) {
 			//back propagating the delta to previous layer
 			inNodes[temp]->beta = inNodes[temp]->beta + (synWeight[temp] * myDelta);
@@ -115,7 +117,7 @@ this is called on every node after complete backpropagation is done for all node
 void Neuron::adjWeights() {
 	float myDelta = beta * activation(output, HIGH);
 	if (inCount != 0) { // inNodes is filled up 
-		byte temp = inCount;
+		int temp = inCount;
 		while (temp != 0) {
 			temp--;
 			float delWeight = (SPEED * inNodes[temp]->output * myDelta);
@@ -126,7 +128,7 @@ void Neuron::adjWeights() {
 		}
 	}
 	else { // inNodes is empty, therfore this is input node
-		for (byte i = 0; i < numSynapse; i++) {
+		for (int i = 0; i < numSynapse; i++) {
 			float  delWeight = (SPEED * input[i] * myDelta);
 			synWeight[i] = synWeight[i] + delWeight + MOMENTUM * prevDelWeight[i];
 			prevDelWeight[i] = delWeight;
@@ -146,7 +148,7 @@ void Neuron::adjWeights() {
 }
 
 void Neuron::printWeights() {
-	for (byte i = 0; i < numSynapse; i++) {
+	for (int i = 0; i < numSynapse; i++) {
 		Serial.print(synWeight[i]);
 		Serial.print(",");
 	}
@@ -166,7 +168,7 @@ void Neuron::connectInput(Neuron* inNode) {
 	//Serial.println((int)inNodes[inCount-1]);
 }
 
-void Neuron::connectInputs(vector<Neuron*> inNodes_) {
+void Neuron::connectInputs(vector<Neuron*> &inNodes_) {
 	inNodes.insert(inNodes.end(), inNodes_.begin(), inNodes_.end());
 	inCount = inNodes.size();
 }

@@ -31,7 +31,9 @@ using namespace std;
 	TODO:
 	-too many float calculations consider optimizing /removing these as well
 */
-typedef float(*activFn)(float, byte);
+
+typedef float(*activFn)(float, int);
+
 
 struct TrainingSet {
 
@@ -50,6 +52,14 @@ struct TrainingSet {
 class Neuron {
 
 public:
+
+	static float sigmoidFn(float in, int isDerivative) {
+		return isDerivative == HIGH ? sigmoidDerivative(in) : sigmoid(in);
+	}
+	static float linear(float in, int isDerivative) {
+		return isDerivative == HIGH ? 1 : in;
+	}
+
 	//constructor
 	Neuron();
 	/*
@@ -83,12 +93,12 @@ public:
 	be advised this DOES NOT keep count of the inputs specified
 	by the programmer by the setInput() function
 	*/
-	byte inCount; //input Nodes are only counted 
+	int inCount; //input Nodes are only counted 
 	/*
 	keeps count of the inputs specified by setInput() and begin()
 	this counts the number of float array type inputs and not the connectInput() ones
 	*/
-	byte numSynapse;
+	int numSynapse;
 	/*
 	associates an activation function for this neuron, user sets the address of any activation
 	function using setActivationFn()
@@ -110,7 +120,7 @@ public:
 					when noInputs = HIGH, this doesnt allocate memory for the same
 	these are optional arguments for those people who know what they are doing
 	*/
-	void begin(byte num_syn, byte noConnections = FALSE, byte noInputs = FALSE);
+	void begin(int num_syn, int noConnections = FALSE, int noInputs = FALSE);
 	/*
 	adjust weights according to the update rule
 	*/
@@ -147,7 +157,7 @@ public:
 	connect an array of pointers to nodes from which
 	ouputs will be taken as inputs to this->node
 	*/
-	void connectInputs(vector<Neuron*> inNodes_);
+	void connectInputs(vector<Neuron*> &inNodes_);
 	/*
 	compute output value from the input nodes, store it and return it
 	*/

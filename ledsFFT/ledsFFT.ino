@@ -41,13 +41,15 @@ namespace std {
 }
 
 // --- GENERAL DEFINES ---
-#define ON			1
-#define OFF			0
-#define G_SWITCH	ON
-#define R_PIN		6
-#define G_PIN		7
-#define B_PIN		8 
-#define MIC_PIN		PIN_A0 
+#define ON						1
+#define OFF						0
+#define G_SWITCH				ON
+#define R_PIN					6
+#define G_PIN					7
+#define B_PIN					8 
+#define MIC_PIN					PIN_A0 
+#define BONGO_SELECT_BTN_PIN_1	15
+#define BONGO_SELECT_BTN_PIN_2	20
 #define SERIAL_DEBUG
 
 //#define FFT1024 true // if commented out, FFT 256 resolution will be set by default
@@ -119,7 +121,7 @@ void pulseLed(int led_pin, float power) {
 	}
 }
 
-void addTrainingSet(AudioStream* audioStream, vector<float> desiredOutput) {
+void addTrainingSet(AudioStream* audioStream, vector<float> &idealOutput) {
 
 #ifdef FFT256
 	AudioAnalyzeFFT256* fft = static_cast<AudioAnalyzeFFT256*>(audioStream);
@@ -130,6 +132,10 @@ void addTrainingSet(AudioStream* audioStream, vector<float> desiredOutput) {
 	if (fft == nullptr) return;
 
 	if (fft->available() && fft->read(0, NUM_INPUTS/2 - 1) > FFT_SUM_TRAINING_THRES) {
+
+#ifdef DEBUG
+		Serial.println("--- Adding new FFT training set... ---");
+#endif
 		
 		float fftSpectrum[NUM_INPUTS];
 		
@@ -137,7 +143,7 @@ void addTrainingSet(AudioStream* audioStream, vector<float> desiredOutput) {
 			fftSpectrum[i] = fft->read(i);
 		}
 
-		trainingData.push_back(TrainingSet(fftSpectrum, currentBongoRecording));
+		trainingData.push_back(TrainingSet(fftSpectrum, idealOutput));
 #ifdef DEBUG
 		Serial.println("--- New training set added ! ---");
 #endif
@@ -155,6 +161,25 @@ void initTimer(void) {
 
 //----------------------------------------------------------------------------------------------
 
+void initBongoRecordingSelectButtons() {
+	//  --- RECORDED BONGO SELECTION BUTTONS ---
+	/* 
+	so that the NN knows which bongo (left or right or none) 
+	it should ideally learn to recognize
+	*/
+	pinMode(21, OUTPUT);
+	pinMode(BONGO_SELECT_BTN_PIN_2, INPUT);
+	pinMode(19, OUTPUT);
+	digitalWrite(21, LOW);
+	digitalWrite(19, HIGH);
+
+	pinMode(16, OUTPUT);
+	pinMode(BONGO_SELECT_BTN_PIN_1, INPUT);
+	pinMode(14, OUTPUT);
+	digitalWrite(16, LOW);
+	digitalWrite(14, HIGH);
+}
+
 void initDisplay() {
 	pinMode(R_PIN, OUTPUT);
 	pinMode(G_PIN, OUTPUT);
@@ -162,6 +187,19 @@ void initDisplay() {
 	digitalWrite(R_PIN, OFF);
 	digitalWrite(G_PIN, OFF);
 	digitalWrite(B_PIN, OFF);
+}
+
+void updateCurrentBongoRecordingSelection(vector<float> &currentBongosSelection) {
+	
+	currentBongosSelection = { digitalRead(BONGO_SELECT_BTN_PIN_1), digitalRead(BONGO_SELECT_BTN_PIN_2) };
+
+//#ifdef DEBUG
+//	Serial.print("BONGO RECORD SELECTION : ");
+//	Serial.print(currentBongoRecording[0]);
+//	Serial.print(" - ");
+//	Serial.println(currentBongoRecording[1]);
+//#endif
+
 }
 
 
@@ -177,6 +215,7 @@ void setup() {
 
 	AudioMemory(25);
 	initDisplay();
+	initBongoRecordingSelectButtons();
 
 	Serial.print("Free SRAM BEFORE NN => ");
 	Serial.println(freeMemory());
@@ -188,14 +227,20 @@ void setup() {
 	Serial.println(freeMemory());
 }
 
+vector<float> getBongosRecordingSelection() {
+	return { digitalRead(BONGO_SELECT_BTN_PIN_1), digitalRead(BONGO_SELECT_BTN_PIN_2) };
+}
+
 void loop() {
 
 	// adding a training set to the training database if fft threshold exceeded
+	updateCurrentBongoRecordingSelection(currentBongoRecording);
 	addTrainingSet(static_cast<AudioStream*>(&fft1), currentBongoRecording);
 
-	bongoNeuralNetwork->train(trainingData, 0.5, 1000);
+	Serial.print("training data SIZE => ");
+	Serial.println(trainingData.size());
 
-
+	//bongoNeuralNetwork->train(trainingData, 0.5, 1000);
 
 
 	//if (!G_SWITCH) {

@@ -11,10 +11,17 @@
 
 #include "Arduino.h"
 #define sigmoid(x)           (1.0 / (1.0 + (float)exp(-(float)(x))))
-#define sigmoidDerivative(x) ((float)((x)*(1.0-(x)))) 
+#define sigmoidDerivative(x) ((float)((x)*(1.0-(x))))
 
 #include <vector>
 using namespace std;
+
+#ifdef __arm__
+// should use uinstd.h to define sbrk but Due causes a conflict
+extern "C" char* sbrk(int incr);
+#else  // __ARM__
+extern char *__brkval;
+#endif  // __arm__
 
 /*
 	types of neurons can be classified using the 2 begin() parameters noConnections and noInputs
@@ -49,6 +56,22 @@ struct TrainingSet {
 	{}
 };
 
+
+struct Memory {
+
+	static int getFreeMemory() {
+		char top;
+#ifdef __arm__
+		return &top - reinterpret_cast<char*>(sbrk(0));
+#elif defined(CORE_TEENSY) || (ARDUINO > 103 && ARDUINO != 151)
+		return &top - __brkval;
+#else  // __arm__
+		return __brkval ? &top - __brkval : &top - __malloc_heap_start;
+#endif  // __arm__
+	}
+};
+
+
 class Neuron {
 
 public:
@@ -62,43 +85,34 @@ public:
 
 	//constructor
 	Neuron();
+
 	/*
 	synWeight holds the weight of each synapase that is INCOMING for that neuron
 	the length of synWeight is decided by the begin() function where mem alloc
 	takes place.
 	*/
-	float *synWeight;
-	/*stores the previous change ini weight for each synapse, ONLY required for
-	momentum functionality
-	*/
-	float *prevDelWeight;
-	/*
-	for a neuron to which no other neurons are connected an input may be specified
-	this implies that neuron will have inputs defined by the user instead of being
-	the output of other neurons
-	*/
-	float *input;
+	vector<float> synWeights;
+
 	/*
 	the second way to have inputs is to have output of some other neurons feed into
 	this neuron inNodes stores the address of every neuron which is connected to this
 	neuron and asks for the output from each of those to calculate its output
 	*/
-	vector<Neuron*> inNodes;	//array of pointers of type neuron
+	vector<Neuron*>* inNodes;	// pointer to on array of pointers of type neuron
+
+	float bias;
+	
 	/*
 	stores the output of this neuron
 	*/
 	float output;
-	/*
-	counts the number of neurons that are connected to this neuron using connectInput()
-	be advised this DOES NOT keep count of the inputs specified
-	by the programmer by the setInput() function
-	*/
-	int inCount; //input Nodes are only counted 
+
 	/*
 	keeps count of the inputs specified by setInput() and begin()
 	this counts the number of float array type inputs and not the connectInput() ones
 	*/
 	int numSynapse;
+
 	/*
 	associates an activation function for this neuron, user sets the address of any activation
 	function using setActivationFn()
@@ -133,31 +147,17 @@ public:
 	setDesiredOUtput only valid for the last nodes
 	*/
 	float setIdealOutput(float desiredOutput);
-	/*
-	Set the constant input values for the input layer
-	*/
-	void setInput(float input[]);
-	void setInput(int input[]);
-	/*
-	Set the constant output value mostly for the bias node only
-	*/
-	void setOutput(float value);
+
 	/*
 	print the final weights after learning has happened
 	*/
 	void printWeights();
-	/*
-	connect other nodes to this->node as inputs
-	this function accepts one neuron pointer and adds to the
-	list of input pointer from which output is taken as an input for this node
-	*/
-	void connectInput(Neuron* inNode);
 
 	/*
 	connect an array of pointers to nodes from which
 	ouputs will be taken as inputs to this->node
 	*/
-	void connectInputs(vector<Neuron*> &inNodes_);
+	void connectInputs(vector<Neuron*>* inNodes_);
 	/*
 	compute output value from the input nodes, store it and return it
 	*/
@@ -166,6 +166,11 @@ public:
 	set the activation functionfor this->node
 	*/
 	void setActivationFn(activFn userFn);
+
+	static void printMessage(String msg, float argument) {
+		Serial.print(msg);
+		Serial.println(argument, 2);
+	}
 };
 
 #endif

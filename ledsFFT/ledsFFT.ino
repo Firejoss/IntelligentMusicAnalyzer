@@ -8,25 +8,6 @@
 #include <Easing.h>
 #include "NeuralNetwork.h"
 
-#ifdef __arm__
-// should use uinstd.h to define sbrk but Due causes a conflict
-extern "C" char* sbrk(int incr);
-#else  // __ARM__
-extern char *__brkval;
-#endif  // __arm__
-
-int freeMemory() {
-	char top;
-#ifdef __arm__
-	return &top - reinterpret_cast<char*>(sbrk(0));
-#elif defined(CORE_TEENSY) || (ARDUINO > 103 && ARDUINO != 151)
-	return &top - __brkval;
-#else  // __arm__
-	return __brkval ? &top - __brkval : &top - __malloc_heap_start;
-#endif  // __arm__
-}
-
-
 namespace std {
 	void __throw_bad_alloc()
 	{
@@ -47,7 +28,7 @@ namespace std {
 #define R_PIN					6
 #define G_PIN					7
 #define B_PIN					8 
-#define MIC_PIN					PIN_A0 
+#define MIC_PIN					PIN_A3
 #define BONGO_SELECT_BTN_PIN_1	15
 #define BONGO_SELECT_BTN_PIN_2	20
 #define SERIAL_DEBUG
@@ -87,12 +68,12 @@ vector<TrainingSet> trainingData = {};
 #define BONGO_2_RECORDING		{1, 0}
 vector<float> currentBongoRecording = BONGO_NOISE_RECORDING;
 
-#define FFT_SUM_TRAINING_THRES  2.5
+#define FFT_SUM_TRAINING_THRES  1.5
 
 //-----------------------------------------------------------------------------------------------
 
 // --- FFT display ---
-AudioInputAnalog         adc1(14);
+AudioInputAnalog         adc1(MIC_PIN);
 
 #ifdef FFT1024
 AudioAnalyzeFFT1024      fft1;
@@ -145,9 +126,47 @@ void addTrainingSet(AudioStream* audioStream, vector<float> &idealOutput) {
 
 		trainingData.push_back(TrainingSet(fftSpectrum, idealOutput));
 #ifdef DEBUG
-		Serial.println("--- New training set added ! ---");
+		Serial.print("--- New training set added ! --- idealOutput : ");
+		Serial.print(idealOutput[0]);
+		Serial.print(" - ");
+		Serial.print(idealOutput[1]);
+		Serial.print("--- Training data SIZE => ");
+		Serial.println(trainingData.size());
 #endif
 	}
+}
+
+void testNeuralNetwork(NeuralNetwork* nn, AudioStream* audioStream) {
+
+#ifdef FFT256
+	AudioAnalyzeFFT256* fft = static_cast<AudioAnalyzeFFT256*>(audioStream);
+#elif FFT1024
+	AudioAnalyzeFFT1024* fft = static_cast<AudioAnalyzeFFT1024*>(audioStream);
+#endif
+
+	if (fft == nullptr) return;
+
+	if (fft->available() && fft->read(0, NUM_INPUTS / 2 - 1) > FFT_SUM_TRAINING_THRES) {
+
+#ifdef DEBUG
+		Serial.println("--- Testing NN with real input... ---");
+#endif
+
+		float fftSpectrum[NUM_INPUTS];
+
+		for (int i = 0; i < NUM_INPUTS / 2; i++) {
+			fftSpectrum[i] = fft->read(i);
+		}
+
+		TrainingSet realInputData(fftSpectrum, {});
+
+		nn->feedInputs(realInputData);
+		nn->propagate();
+#ifdef DEBUG
+		nn->printOutput();
+#endif
+	}
+
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -218,29 +237,31 @@ void setup() {
 	initBongoRecordingSelectButtons();
 
 	Serial.print("Free SRAM BEFORE NN => ");
-	Serial.println(freeMemory());
+	Serial.println(Memory::getFreeMemory());
 
 	// creates the neural network
 	bongoNeuralNetwork = new NeuralNetwork(NUM_INPUTS, { NUM_LAY_1, NUM_LAY_2 }, NUM_OUTPUTS);
 
 	Serial.print("Free SRAM AFTER NN => ");
-	Serial.println(freeMemory());
-}
-
-vector<float> getBongosRecordingSelection() {
-	return { digitalRead(BONGO_SELECT_BTN_PIN_1), digitalRead(BONGO_SELECT_BTN_PIN_2) };
+	Serial.println(Memory::getFreeMemory());
 }
 
 void loop() {
 
-	// adding a training set to the training database if fft threshold exceeded
-	updateCurrentBongoRecordingSelection(currentBongoRecording);
-	addTrainingSet(static_cast<AudioStream*>(&fft1), currentBongoRecording);
+	while (trainingData.size() < 30) {
+		// adding a training set to the training database if fft threshold exceeded
+		updateCurrentBongoRecordingSelection(currentBongoRecording);
+		addTrainingSet(&fft1, currentBongoRecording);
+	}
 
-	Serial.print("training data SIZE => ");
-	Serial.println(trainingData.size());
+	bongoNeuralNetwork->train(trainingData, 0.1, 1000);
 
-	//bongoNeuralNetwork->train(trainingData, 0.5, 1000);
+	while (1) {
+
+		testNeuralNetwork(bongoNeuralNetwork, &fft1);
+
+		delay(500);
+	}
 
 
 	//if (!G_SWITCH) {

@@ -7,7 +7,7 @@ class NeuralNetwork
 
 protected:
 	vector<Neuron*> inputNodes;
-	vector<vector<Neuron*>> intermediateLayers;
+	vector<vector<Neuron*>*> intermediateLayers;
 	vector<Neuron*> outputNodes;
 	Neuron* biasNode;
 
@@ -29,6 +29,8 @@ public:
 	int backPropagate();
 
 	int adjustWeights();
+
+	void printOutput();
 
 };
 

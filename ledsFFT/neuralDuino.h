@@ -2,8 +2,8 @@
 #define __neuralDuino_h__
 
 #define DEBUG 0
-#define DISPLAY_ERROR 1
-#define LEARNING_RATE 0.1
+#define DISPLAY_ERROR 0
+#define LEARNING_RATE 0.4
 #define MOMENTUM 0.1
 #define SPEED LEARNING_RATE
 #define FALSE LOW
@@ -169,7 +169,7 @@ public:
 
 	static void printMessage(String msg, float argument) {
 		Serial.print(msg);
-		Serial.println(argument, 2);
+		Serial.println(argument, 10);
 	}
 };
 

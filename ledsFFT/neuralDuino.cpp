@@ -20,12 +20,10 @@ void Neuron::begin(int num_syn, int noConnections = FALSE, int noInputs = FALSE)
 		synWeights.resize(num_syn);
 	}
 
-	// !O! ANALOGREAD not usable when FFT is used... find another seed method later
-	randomSeed(7592/*analogRead(A0)*/);
 	for (int i = 0; i < num_syn; i++) {
-		synWeights[i] = (float)(((float)random(0, 100) / 100.0) - 0.1);
+		synWeights[i] = (float)(rand() % 100) / 100.0;
 	}
-	bias = (float) random(0, 100) / 100.0;
+	bias = (float) (rand() % 100) / 100.0;
 }
 
 float Neuron::propagate() {
@@ -49,7 +47,7 @@ float Neuron::propagate() {
 
 
 float Neuron::setIdealOutput(float desiredOutput) {
-	beta = desiredOutput - output;
+	beta = output - desiredOutput;
 #if DISPLAY_ERROR
 	Serial.println(beta, 10);
 #endif

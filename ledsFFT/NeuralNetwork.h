@@ -24,7 +24,7 @@ public:
 
 	int propagate();
 
-	int feedOutputIdealValues(TrainingSet & trainingSet);
+	float feedOutputIdealValues(TrainingSet & trainingSet);
 
 	int backPropagate();
 

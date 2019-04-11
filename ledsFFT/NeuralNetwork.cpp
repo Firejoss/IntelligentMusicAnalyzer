@@ -29,7 +29,6 @@ int NeuralNetwork::init(int inputVectorSize_, vector<int> intermediateLayersSize
 
 	// --- INTERMEDIATE LAYERS ---
 	for (int i; i < intermediateLayersSizes_.size(); i++) {
-		Serial.println(Memory::getFreeMemory());
 		Neuron* interNeuron = nullptr;
 		vector<Neuron*>* intermLayer = new vector<Neuron*>();
 		for (int index = 0; index < intermediateLayersSizes_[i]; index++) {
@@ -58,7 +57,7 @@ int NeuralNetwork::init(int inputVectorSize_, vector<int> intermediateLayersSize
 		outputNode->setActivationFn(&Neuron::sigmoidFn);
 		outputNode->connectInputs(intermediateLayers.back());
 	}
-	Serial.println("Output nodes initialized\n\n");
+	Serial.println("Output nodes initialized\n");
 
 	return 0;
 }
@@ -75,16 +74,16 @@ float NeuralNetwork::train(vector<TrainingSet> &trainingData_, float idealError,
 	while (error > idealError && numEpochs < maxEpochs) {
 
 		numEpochs++;
-		Neuron::printMessage("Epoch ", numEpochs);
+		Neuron::printMessage("\nEpoch ", numEpochs);
 
 		for (auto &trainingSet : trainingData_) {
 
-			Serial.println("Feed inputs...");
+			//Serial.println("Feed inputs...");
 			feedInputs(trainingSet);
-			Serial.println("Propagate...");
+			//Serial.println("Propagate...");
 			propagate();
 
-			Serial.println("Process error...");
+			//Serial.println("Process error...");
 			error = feedOutputIdealValues(trainingSet);
 			Neuron::printMessage("Error => ", error);
 
@@ -117,7 +116,6 @@ int NeuralNetwork::feedInputs(TrainingSet &trainingSet) {
 
 #endif // DEBUG
 
-
 	return 0;
 }
 
@@ -133,17 +131,18 @@ int NeuralNetwork::propagate() {
 	return 0;
 }
 
-int NeuralNetwork::feedOutputIdealValues(TrainingSet &trainingSet) {
+float NeuralNetwork::feedOutputIdealValues(TrainingSet &trainingSet) {
 	
 	if (trainingSet.idealOutputValues.size() != this->outputNodes.size()) {
 		Serial.println("Ideal output and output vectors have different sizes");
 		return -1;
 	}
 	int outputSize = this->outputNodes.size();
+	float error = 0;
 	for (int i = 0; i < outputSize; i++) {
-		this->outputNodes[i]->setIdealOutput(trainingSet.idealOutputValues[i]);
+		error += this->outputNodes[i]->setIdealOutput(trainingSet.idealOutputValues[i]);
 	}
-	return 0;
+	return error;
 }
 
 int NeuralNetwork::backPropagate() {

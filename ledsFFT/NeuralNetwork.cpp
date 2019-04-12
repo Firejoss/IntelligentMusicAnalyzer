@@ -8,57 +8,87 @@ NeuralNetwork::NeuralNetwork()
 
 NeuralNetwork::NeuralNetwork(int inputVectorSize_, vector<int> intermediateLayersSizes_, int ouputVectorSize_)
 {
-	init(inputVectorSize_, intermediateLayersSizes_, ouputVectorSize_);
+	intermediateLayersSizes_.insert(intermediateLayersSizes_.begin(), inputVectorSize_);
+	intermediateLayersSizes_.push_back(ouputVectorSize_);
+	init(intermediateLayersSizes_);
 }
 
 NeuralNetwork::~NeuralNetwork()
 {
 }
 
-int NeuralNetwork::init(int inputVectorSize_, vector<int> intermediateLayersSizes_, int ouputVectorSize_) {
+int NeuralNetwork::init(vector<int> layersSizes_) {
 
-	// --- INPUTS ---
-	inputNodes.resize(inputVectorSize_);
+	// --- INPUT, INTERMEDIATE AND OUTPUT LAYERS ---
 
-	for (auto &inputNode : inputNodes) {
-		inputNode = new Neuron();
-		inputNode->begin(0);
-		inputNode->setActivationFn(&Neuron::linear);
-	}
-	Serial.println("Input nodes initialized\n");
+	weights.resize(layersSizes_.size() - 1);
+	biases.resize(layersSizes_.size() - 1);
+	zs.resize(layersSizes_.size() - 1);
 
-	// --- INTERMEDIATE LAYERS ---
-	for (int i; i < intermediateLayersSizes_.size(); i++) {
-		Neuron* interNeuron = nullptr;
-		vector<Neuron*>* intermLayer = new vector<Neuron*>();
-		for (int index = 0; index < intermediateLayersSizes_[i]; index++) {
-			interNeuron = new Neuron();
-			intermLayer->push_back(interNeuron);
-		}
+	// error vector has the same output vector's size
+	errors.resize(layersSizes_.back());
 
-		intermediateLayers.push_back(intermLayer);
-		Serial.print("Intermediate layer created, size: ");
-		Serial.println(intermediateLayers.back()->size());
-
-		for (int j = 0; j < intermediateLayers.back()->size(); j++) {
-			(*(intermediateLayers[i])) [j]->begin(0 == i ? inputNodes.size() : intermediateLayers[i-1]->size());
-			(*(intermediateLayers[i])) [j]->setActivationFn(&Neuron::sigmoidFn);
-			(*(intermediateLayers[i])) [j]->connectInputs(0 == i ? &inputNodes : intermediateLayers[i - 1]);
-		}
-
-	}
+	deltas.resize(layersSizes_.size() - 1);
 	
-	// --- OUTPUT NODES ---
-	outputNodes.resize(ouputVectorSize_);
+	neuronOutputs.resize(layersSizes_.size());
+	neuronOutputs.front().resize(layersSizes_.front());
 
-	for (auto &outputNode : outputNodes) {
-		outputNode = new Neuron();
-		outputNode->begin(intermediateLayers.back()->size());
-		outputNode->setActivationFn(&Neuron::sigmoidFn);
-		outputNode->connectInputs(intermediateLayers.back());
+	for (int i = 0; i < layersSizes_.size(); i++) {
+		neuronOutputs[i].resize(layersSizes_[i]);
 	}
-	Serial.println("Output nodes initialized\n");
 
+	for (int j = 1; j < layersSizes_.size(); j++) {
+		
+		zs[j - 1].resize(layersSizes_[j]);
+		biases[j - 1].resize(layersSizes_[j]);
+		weights[j - 1].resize(layersSizes_[j]);
+
+		for (int k = 0; k < layersSizes_[j]; k++) {
+			weights[j - 1][k].resize(layersSizes_[j - 1]);
+		}
+	}
+
+	randomizeWeights();
+	randomizeBiases();
+
+	Util::printMsg("Neural network initialized !");
+
+	return 0;
+}
+
+int NeuralNetwork::randomizeWeights() {
+
+	// weights ordered by layers of neurons
+	for (auto& layer : weights) {
+
+		// sublayers containing the weights of the connections
+		// between one neuron and each neuron of the next layer
+		for (auto& subLayer : layer) {
+
+			// every weight initialized randomly in [-0.99 ; 0.99]
+
+			for (auto& weight : subLayer) {
+
+				weight = (float)(rand() % 200 - 100) / 100.0;
+
+			}
+		}
+	}
+	return 0;
+}
+
+int NeuralNetwork::randomizeBiases() {
+
+	// biases ordered by layer of neurons
+	for (auto& layer : biases) {
+
+		// every weight initialized randomly in [-0.99 ; 0.99]
+		for (auto& bias : layer) {
+
+			bias = (float)(rand() % 200 - 100) / 100.0;
+
+		}
+	}
 	return 0;
 }
 
@@ -74,21 +104,20 @@ float NeuralNetwork::train(vector<TrainingSet> &trainingData_, float idealError,
 	while (error > idealError && numEpochs < maxEpochs) {
 
 		numEpochs++;
-		Neuron::printMessage("\nEpoch ", numEpochs);
+		Util::printMsgInt("\nEpoch ", numEpochs);
 
 		for (auto &trainingSet : trainingData_) {
 
-			//Serial.println("Feed inputs...");
+			Serial.println("Feed inputs...");
 			feedInputs(trainingSet);
-			//Serial.println("Propagate...");
+			Serial.println("Propagate...");
 			propagate();
 
-			//Serial.println("Process error...");
+			Serial.println("Process error...");
 			error = feedOutputIdealValues(trainingSet);
-			Neuron::printMessage("Error => ", error);
+			Util::printMsgFloat("Error => ", error);
 
-			backPropagate();
-			adjustWeights();
+			backpropagate();
 		}
 
 	}
@@ -98,18 +127,20 @@ float NeuralNetwork::train(vector<TrainingSet> &trainingData_, float idealError,
 
 int NeuralNetwork::feedInputs(TrainingSet &trainingSet) {
 
-	if (trainingSet.inputValues.size() != this->inputNodes.size()) {
+	if (trainingSet.inputValues.size() != neuronOutputs.front().size()) {
+		Util::printMsgInts("input and trainingset vectors have different sizes : ", 
+			{ trainingSet.inputValues.size(), neuronOutputs.front().size() });
 		return -1;
 	}
-	int inputSize = this->inputNodes.size();
+	int inputSize = neuronOutputs.front().size();
 	for (int i = 0; i < inputSize; i++) {
-		this->inputNodes[i]->output = trainingSet.inputValues[i];
+		neuronOutputs.front()[i] = trainingSet.inputValues[i];
 	}
 
 #ifdef DEBUG
-	Serial.print("\n--- Printing Input values : ---\n\n--> ");
-	for (auto node : inputNodes) {
-		Serial.print(node->output);
+	Serial.print("\n--- input values : ---\n\n--> ");
+	for (auto &inputVal : neuronOutputs.front()) {
+		Serial.print(inputVal);
 		Serial.print(" | ");
 	}
 	Serial.print("\n\n");
@@ -120,78 +151,99 @@ int NeuralNetwork::feedInputs(TrainingSet &trainingSet) {
 }
 
 
-int NeuralNetwork::propagate() {
+vector<float>* NeuralNetwork::propagate() {
 
-	if (outputNodes.empty()) {
-		return -1;
-	}	
-	for (int i = 0; i < outputNodes.size(); i++) {
-		outputNodes[i]->propagate();
-	}	
-	return 0;
+	int layersNum = neuronOutputs.size();
+
+	// begin at 1 because 0 is the input layer;
+	for (int i = 1; i < layersNum; i++) {
+
+		for (int j = 0; j < neuronOutputs[i].size(); j++) {
+
+			float sum = 0;
+			for (int k = 0; k < neuronOutputs[i - 1].size(); k++) {
+				sum += neuronOutputs[i - 1][k] * weights[i - 1][j][k];
+			}
+
+			zs[i - 1][j] = sum + biases[i - 1][j];
+
+			neuronOutputs[i][j] = sigmoid(zs[i - 1][j]);
+		}
+	}
+	return &(neuronOutputs.back());
 }
 
 float NeuralNetwork::feedOutputIdealValues(TrainingSet &trainingSet) {
-	
-	if (trainingSet.idealOutputValues.size() != this->outputNodes.size()) {
+
+	if (trainingSet.idealOutputValues.size() != neuronOutputs.back().size()) {
 		Serial.println("Ideal output and output vectors have different sizes");
 		return -1;
 	}
-	int outputSize = this->outputNodes.size();
+
+	int outputNum = neuronOutputs.back().size();
 	float error = 0;
-	for (int i = 0; i < outputSize; i++) {
-		error += this->outputNodes[i]->setIdealOutput(trainingSet.idealOutputValues[i]);
+
+	for (int i = 0; i < outputNum; i++) {
+		errors[i] = neuronOutputs.back()[i] - trainingSet.idealOutputValues[i];
+		error += errors[i];
 	}
 	return error;
 }
 
-int NeuralNetwork::backPropagate() {
+int NeuralNetwork::backpropagate() {
 
-	if (outputNodes.empty()) {
-		return -1;
-	}
+	//-- first initating backward pass --
+	for (int i = 0; i < errors.size(); i++) {
 
-	for (auto outputNode : this->outputNodes) {
-		outputNode->backpropagate();
-	}
+		deltas.back().push_back(errors[i] * sigmoidPrime(zs.back()[i]));
 
-	vector<vector<Neuron*>*>::reverse_iterator rit = intermediateLayers.rbegin();
+		biases.back()[i] = deltas.back().back();
 
-	for (; rit != intermediateLayers.rend(); ++rit) {
+		for (int j = 0; j < weights[weights.size() - 2].size(); j++) {
 
-		for (auto intermediateNode : **rit) {
-
-			intermediateNode->backpropagate();
+			weights.back()[i][j] = deltas.back()[i] * neuronOutputs[neuronOutputs.size() - 2][j];
 		}
 	}
-	return 0;
-}
+	// ----------------------------------
 
-int NeuralNetwork::adjustWeights() {
+	for (int k = deltas.size() - 2; k >= 0; k--) {
 
-	for (auto outputNode : this->outputNodes) {
-		outputNode->adjWeights();
-	}
+		for (int l = 0; l < weights[k].size(); l++) {
 
-	vector<vector<Neuron*>*>::reverse_iterator rit = intermediateLayers.rbegin();
-	
-	for (; rit != intermediateLayers.rend(); ++rit) {
-		
-		for (auto intermediateNode : **rit) {
+			for (int m = 0; m < weights[k][l].size(); m++) {
 
-			intermediateNode->adjWeights();
+				vector<float> transpWeights = {};
+				for (int n = 0; n < weights[k + 1].size(); n++) {
+					transpWeights.push_back(weights[k + 1][n][l]);
+				}
+
+				deltas[k][l] = Util::dot(deltas[k + 1], transpWeights) * sigmoidPrime(zs[k][l]);
+			
+				biases[k][l] = deltas[k][l];
+
+				for (int p = 0; p < weights[k][l].size(); p++) {
+
+					weights[k][l][p] = deltas[k][l] * neuronOutputs[k][p];
+				}
+
+			}
 		}
+
 	}
+#ifdef DEBUG
+	Util::printMsg("backpropagation done.");
+#endif
+
 	return 0;
 }
 
 void NeuralNetwork::printOutput() {
 
-	Serial.print("--- Neural Network Output : [ - ");
+	Serial.print("\n--- Neural Network Output : | ");
 
-	for (auto &outputNode : this->outputNodes) {
-		Serial.print(outputNode->output);
-		Serial.print(" - ");
+	for (auto &outputVal : neuronOutputs.back()) {
+		Serial.print(outputVal);
+		Serial.print(" | ");
 	}
-	Serial.print("]\n");
+	Serial.print("\n");
 }

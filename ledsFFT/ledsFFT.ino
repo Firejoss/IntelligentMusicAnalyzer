@@ -45,7 +45,7 @@ namespace std {
 /* ----- Neural network defines & variables ----- */
 
 // recommended number of NN inputs given the data vector provided by the fft
-#define FFT256_NN_NUM_INPUTS	128
+#define FFT256_NN_NUM_INPUTS	12
 #define FFT1024_NN_NUM_INPUTS	512
 
 #ifdef FFT256
@@ -124,7 +124,9 @@ void addTrainingSet(AudioStream* audioStream, vector<float> &idealOutput) {
 			fftSpectrum[i] = fft->read(i);
 		}
 
-		trainingData.push_back(TrainingSet(fftSpectrum, idealOutput));
+		TrainingSet ts(fftSpectrum, idealOutput);
+		trainingData.push_back(ts);
+
 #ifdef DEBUG
 		Serial.print("--- New training set added ! --- idealOutput : ");
 		Serial.print(idealOutput[0]);
@@ -162,6 +164,7 @@ void testNeuralNetwork(NeuralNetwork* nn, AudioStream* audioStream) {
 
 		nn->feedInputs(realInputData);
 		nn->propagate();
+
 #ifdef DEBUG
 		nn->printOutput();
 #endif
@@ -248,19 +251,44 @@ void setup() {
 
 void loop() {
 
-	while (trainingData.size() < 30) {
-		// adding a training set to the training database if fft threshold exceeded
-		updateCurrentBongoRecordingSelection(currentBongoRecording);
-		addTrainingSet(&fft1, currentBongoRecording);
-	}
+	//while (trainingData.size() < 30) {
+	//	// adding a training set to the training database if fft threshold exceeded
+	//	updateCurrentBongoRecordingSelection(currentBongoRecording);
+	//	addTrainingSet(&fft1, currentBongoRecording);
+	//}
 
-	bongoNeuralNetwork->train(trainingData, 0.1, 1000);
+	TrainingSet ts({
+		((rand() % 200) - 100) / 100.0,
+		((rand() % 200) - 100) / 100.0,
+		((rand() % 200) - 100) / 100.0,
+		((rand() % 200) - 100) / 100.0,
+		((rand() % 200) - 100) / 100.0,
+		((rand() % 200) - 100) / 100.0,
+		((rand() % 200) - 100) / 100.0,
+		((rand() % 200) - 100) / 100.0,
+		((rand() % 200) - 100) / 100.0,
+		((rand() % 200) - 100) / 100.0,
+		((rand() % 200) - 100) / 100.0,
+		((rand() % 200) - 100) / 100.0
+		}, { 1, 0 });
+
+	bongoNeuralNetwork->feedInputs(ts);
+	bongoNeuralNetwork->propagate();
+	bongoNeuralNetwork->printOutput();
+
+	bongoNeuralNetwork->feedOutputIdealValues(ts);
+	bongoNeuralNetwork->backpropagate();
+
+	//delay(500);
+
+	//bongoNeuralNetwork->train(trainingData, 0.1, 100);
+
 
 	while (1) {
 
-		testNeuralNetwork(bongoNeuralNetwork, &fft1);
+		//testNeuralNetwork(bongoNeuralNetwork, &fft1);
 
-		delay(500);
+		//delay(500);
 	}
 
 

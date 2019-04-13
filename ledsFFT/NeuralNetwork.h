@@ -1,14 +1,14 @@
 #pragma once
+#ifndef NEURAL_NETWORK_H
+#define NEURAL_NETWORK_H
 
 #include <vector>
 #include "Arduino.h"
+
 using namespace std;
 
-#define DEBUG 1
-#define DISPLAY_ERROR 0
+//#define DEBUG
 #define LEARNING_RATE 0.4
-#define MOMENTUM 0.1
-#define SPEED LEARNING_RATE
 #define FALSE LOW
 #define TRUE HIGH
 
@@ -20,18 +20,41 @@ extern char *__brkval;
 #endif  // __arm__
 
 #define sigmoid(x)			1.0 / (1.0 + (float)exp(-(float)(x)))
-#define sigmoidPrime(x)		(float)( x * (1.0 - x) )
+#define sigmoidPrime(x)		(float)(sigmoid(x) * (1.0 - sigmoid(x)))
 
 
 typedef float(*activFn)(float, int);
 
 struct Util {
 
+	static vector<vector<float>> transpose(vector<vector<float>> const& v1) {
+
+		if (v1.empty()) {
+			return v1;
+		}
+
+		vector<vector<float>> v2;
+		v2.resize(v1[0].size());
+
+		for (auto & columnVect : v2) {
+			columnVect.resize(v1.size());
+		}
+
+		for (size_t i = 0; i < v1.size(); i++)
+		{
+			for (size_t j = 0; j < v1[i].size(); j++)
+			{
+				v2[j][i] = v1[i][j];
+			}
+		}
+		return v2;
+	}
+
 	// computes the dot product of two vectors
-	static float dot(vector<float>& v1, vector<float>& v2) {
+	static float dot(vector<float> const& v1, vector<float> const& v2) {
 
 		if (v1.size() != v2.size()) {
-			printMsg("Vectors size are not equal, dot product cannot be computed.");
+			printMsgInts("Dot product error. Unequal vectors sizes : ", { v1.size(), v2.size() });
 			return 0;
 		}
 
@@ -140,3 +163,4 @@ public:
 
 };
 
+#endif // NEURAL_NETWORK_H

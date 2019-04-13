@@ -53,8 +53,8 @@ namespace std {
 #elif FFT1024
 #define NUM_INPUTS		FFT1024_NN_NUM_INPUTS
 #endif
-#define NUM_LAY_1		64
-#define NUM_LAY_2		32
+#define NUM_LAY_1		30
+#define NUM_LAY_2		15
 #define NUM_OUTPUTS		2
 
 NeuralNetwork* bongoNeuralNetwork;
@@ -257,7 +257,8 @@ void loop() {
 	//	addTrainingSet(&fft1, currentBongoRecording);
 	//}
 
-	TrainingSet ts({
+
+	TrainingSet ts0({
 		((rand() % 200) - 100) / 100.0,
 		((rand() % 200) - 100) / 100.0,
 		((rand() % 200) - 100) / 100.0,
@@ -270,14 +271,60 @@ void loop() {
 		((rand() % 200) - 100) / 100.0,
 		((rand() % 200) - 100) / 100.0,
 		((rand() % 200) - 100) / 100.0
-		}, { 1, 0 });
+		}, { 1.0, 0.0 });	
+	
+	TrainingSet ts1({
+		((rand() % 200) - 100) / 100.0,
+		((rand() % 200) - 100) / 100.0,
+		((rand() % 200) - 100) / 100.0,
+		((rand() % 200) - 100) / 100.0,
+		((rand() % 200) - 100) / 100.0,
+		((rand() % 200) - 100) / 100.0,
+		((rand() % 200) - 100) / 100.0,
+		((rand() % 200) - 100) / 100.0,
+		((rand() % 200) - 100) / 100.0,
+		((rand() % 200) - 100) / 100.0,
+		((rand() % 200) - 100) / 100.0,
+		((rand() % 200) - 100) / 100.0
+		}, { 0.0, 1.0 });	
 
-	bongoNeuralNetwork->feedInputs(ts);
-	bongoNeuralNetwork->propagate();
-	bongoNeuralNetwork->printOutput();
+	TrainingSet ts2({
+		((rand() % 200) - 100) / 100.0,
+		((rand() % 200) - 100) / 100.0,
+		((rand() % 200) - 100) / 100.0,
+		((rand() % 200) - 100) / 100.0,
+		((rand() % 200) - 100) / 100.0,
+		((rand() % 200) - 100) / 100.0,
+		((rand() % 200) - 100) / 100.0,
+		((rand() % 200) - 100) / 100.0,
+		((rand() % 200) - 100) / 100.0,
+		((rand() % 200) - 100) / 100.0,
+		((rand() % 200) - 100) / 100.0,
+		((rand() % 200) - 100) / 100.0
+		}, { 1.0, 1.0 });
 
-	bongoNeuralNetwork->feedOutputIdealValues(ts);
-	bongoNeuralNetwork->backpropagate();
+	vector<TrainingSet> tsets{ ts0, ts1, ts2 };
+
+	for (size_t i = 0; i < 600; i++)
+	{
+		bongoNeuralNetwork->feedInputs(tsets[i % 3]);
+		bongoNeuralNetwork->propagate();
+		//bongoNeuralNetwork->printOutput();
+
+		bongoNeuralNetwork->feedOutputIdealValues(tsets[i % 3]);
+		bongoNeuralNetwork->backpropagate();
+	}
+	Util::printMsg("\n************************");
+	Util::printMsg("*** Training is over ***");
+	Util::printMsg("************************\n");
+
+	for (size_t i = 0; i < tsets.size(); i++)
+	{
+		bongoNeuralNetwork->feedInputs(tsets[i]);
+		bongoNeuralNetwork->propagate();
+		bongoNeuralNetwork->printOutput();
+	}
+
 
 	//delay(500);
 

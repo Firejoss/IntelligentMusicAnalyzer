@@ -33,18 +33,16 @@ int NeuralNetwork::init(vector<int> layersSizes_) {
 	neuronOutputs.resize(layersSizes_.size());
 	neuronOutputs.front().resize(layersSizes_.front());
 
-	for (int i = 0; i < layersSizes_.size(); i++) {
+	for (int i = 1; i < layersSizes_.size(); i++) {
 		neuronOutputs[i].resize(layersSizes_[i]);
-	}
-
-	for (int j = 1; j < layersSizes_.size(); j++) {
+		deltas[i - 1].resize(layersSizes_[i]);
 		
-		zs[j - 1].resize(layersSizes_[j]);
-		biases[j - 1].resize(layersSizes_[j]);
-		weights[j - 1].resize(layersSizes_[j]);
+		zs[i - 1].resize(layersSizes_[i]);
+		biases[i - 1].resize(layersSizes_[i]);
+		weights[i - 1].resize(layersSizes_[i]);
 
-		for (int k = 0; k < layersSizes_[j]; k++) {
-			weights[j - 1][k].resize(layersSizes_[j - 1]);
+		for (int k = 0; k < layersSizes_[i]; k++) {
+			weights[i - 1][k].resize(layersSizes_[i - 1]);
 		}
 	}
 
@@ -86,7 +84,6 @@ int NeuralNetwork::randomizeBiases() {
 		for (auto& bias : layer) {
 
 			bias = (float)(rand() % 200 - 100) / 100.0;
-
 		}
 	}
 	return 0;
@@ -195,37 +192,35 @@ int NeuralNetwork::backpropagate() {
 	//-- first initating backward pass --
 	for (int i = 0; i < errors.size(); i++) {
 
-		deltas.back().push_back(errors[i] * sigmoidPrime(zs.back()[i]));
+		deltas.back()[i] = errors[i] * sigmoidPrime(zs.back()[i]) * LEARNING_RATE;
 
-		biases.back()[i] = deltas.back().back();
+		biases.back()[i] -= deltas.back()[i];
 
-		for (int j = 0; j < weights[weights.size() - 2].size(); j++) {
+		for (int j = 0; j < weights.back()[i].size(); j++) {
 
-			weights.back()[i][j] = deltas.back()[i] * neuronOutputs[neuronOutputs.size() - 2][j];
+			weights.back()[i][j] -= deltas.back()[i] * neuronOutputs[neuronOutputs.size() - 2][j];
+		
+			//Util::printMsgFloat("Weights back : ", weights.back()[i][j]);
 		}
 	}
 	// ----------------------------------
 
 	for (int k = deltas.size() - 2; k >= 0; k--) {
 
-		for (int l = 0; l < weights[k].size(); l++) {
+		vector<vector<float>> transpWeights = Util::transpose(weights[k+1]);
+		
+		for (int l = 0; l < transpWeights[k].size(); l++) {
 
-			for (int m = 0; m < weights[k][l].size(); m++) {
+			deltas[k][l] = Util::dot(deltas[k + 1], transpWeights[l]) * sigmoidPrime(zs[k][l]) * LEARNING_RATE;
+		}
 
-				vector<float> transpWeights = {};
-				for (int n = 0; n < weights[k + 1].size(); n++) {
-					transpWeights.push_back(weights[k + 1][n][l]);
-				}
+		for (int m = 0; m < weights[k].size(); m++) {
 
-				deltas[k][l] = Util::dot(deltas[k + 1], transpWeights) * sigmoidPrime(zs[k][l]);
-			
-				biases[k][l] = deltas[k][l];
+			biases[k][m] -= deltas[k][m];
 
-				for (int p = 0; p < weights[k][l].size(); p++) {
+			for (int p = 0; p < weights[k][m].size(); p++) {
 
-					weights[k][l][p] = deltas[k][l] * neuronOutputs[k][p];
-				}
-
+				weights[k][m][p] -= deltas[k][m] * neuronOutputs[k][p];
 			}
 		}
 

@@ -115,12 +115,10 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="neuralDuino.h" />
     <ClInclude Include="NeuralNetwork.h" />
     <ClInclude Include="__vm\.ledsFFT.vsarduino.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="neuralDuino.cpp" />
     <ClCompile Include="NeuralNetwork.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -1,6 +1,6 @@
 C:\Users\joss\AppData\Local\Temp\VMBuilds\ledsFFT\teensy36\Debug\SD\utility\Sd2Card.cpp.o: \
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\libraries\SD\utility\Sd2Card.cpp \
- C:\Users\joss\AppData\Local\Temp\VMBuilds\ledsFFT\teensy36\Debug/pch/Arduino.h \
+ C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/Arduino.h \
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/WProgram.h \
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/avr/pgmspace.h \
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/avr/interrupt.h \
@@ -37,7 +37,6 @@ C:\Users\joss\AppData\Local\Temp\VMBuilds\ledsFFT\teensy36\Debug\SD\utility\Sd2C
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/elapsedMillis.h \
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/Arduino.h \
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/IntervalTimer.h \
- C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/pins_arduino.h \
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\libraries\SPI/SPI.h \
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/DMAChannel.h \
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/EventResponder.h \

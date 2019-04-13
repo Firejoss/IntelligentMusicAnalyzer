@@ -1,6 +1,7 @@
-C:\Users\joss\AppData\Local\Temp\VMBuilds\ledsFFT\teensy36\Debug\Wire\Wire.cpp.o: \
- C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\libraries\Wire\Wire.cpp \
- C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/Arduino.h \
+C:\Users\joss\AppData\Local\Temp\VMBuilds\ledsFFT\teensy36\Debug\NeuralNetwork.cpp.o: \
+ C:\Users\joss\AppData\Local\Temp\VMBuilds\ledsFFT\teensy36\Debug\NeuralNetwork.cpp \
+ C:\Users\joss\AppData\Local\Temp\VMBuilds\ledsFFT\teensy36\Debug\NeuralNetwork.h \
+ C:\Users\joss\AppData\Local\Temp\VMBuilds\ledsFFT\teensy36\Debug/pch/Arduino.h \
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/WProgram.h \
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/avr/pgmspace.h \
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/avr/interrupt.h \
@@ -36,4 +37,5 @@ C:\Users\joss\AppData\Local\Temp\VMBuilds\ledsFFT\teensy36\Debug\Wire\Wire.cpp.o
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/WCharacter.h \
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/elapsedMillis.h \
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/Arduino.h \
- C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/IntervalTimer.h
+ C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/IntervalTimer.h \
+ C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/pins_arduino.h

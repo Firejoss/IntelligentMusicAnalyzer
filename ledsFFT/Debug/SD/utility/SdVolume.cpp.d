@@ -4,7 +4,7 @@ C:\Users\joss\AppData\Local\Temp\VMBuilds\ledsFFT\teensy36\Debug\SD\utility\SdVo
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/avr/pgmspace.h \
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\libraries\SD\utility/Sd2Card.h \
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\libraries\SD\utility/Sd2PinMap.h \
- C:\Users\joss\AppData\Local\Temp\VMBuilds\ledsFFT\teensy36\Debug/pch/Arduino.h \
+ C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/Arduino.h \
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/WProgram.h \
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/avr/interrupt.h \
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/avr_functions.h \
@@ -40,7 +40,6 @@ C:\Users\joss\AppData\Local\Temp\VMBuilds\ledsFFT\teensy36\Debug\SD\utility\SdVo
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/elapsedMillis.h \
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/Arduino.h \
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/IntervalTimer.h \
- C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/pins_arduino.h \
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\libraries\SD\utility/SdInfo.h \
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\libraries\SD\utility/FatStructs.h \
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/Print.h

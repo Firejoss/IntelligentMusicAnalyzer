@@ -1,11 +1,10 @@
 C:\Users\joss\AppData\Local\Temp\VMBuilds\ledsFFT\teensy36\Debug\ledsFFT.cpp.o: \
  C:\Users\joss\AppData\Local\Temp\VMBuilds\ledsFFT\teensy36\Debug\ledsFFT.cpp \
- C:\Program\ Files\ (x86)\Microsoft\ Visual\ Studio\2017\Community\Common7\IDE\Extensions\sivbitce.zrh\Micro\ Platforms\default\debuggers\VM_DBG/VM_DBG.h \
- C:\Users\joss\AppData\Local\Temp\VMBuilds\ledsFFT\teensy36\Debug/pch/Arduino.h \
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\libraries\Audio/Audio.h \
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/DMAChannel.h \
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/kinetis.h \
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\libraries\Audio/analyze_fft256.h \
+ C:\Users\joss\AppData\Local\Temp\VMBuilds\ledsFFT\teensy36\Debug/pch/Arduino.h \
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/AudioStream.h \
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/arm_math.h \
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\cores\teensy3/core_cmInstr.h \
@@ -88,4 +87,5 @@ C:\Users\joss\AppData\Local\Temp\VMBuilds\ledsFFT\teensy36\Debug\ledsFFT.cpp.o: 
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\libraries\Audio/synth_pwm.h \
  C:\Program\ Files\ (x86)\Arduino\hardware\teensy\avr\libraries\Audio/synth_wavetable.h \
  C:\Users\joss\Documents\Arduino\libraries\ArduinoEasing-master/Easing.h \
- C:\Users\joss\AppData\Local\Temp\VMBuilds\ledsFFT\teensy36\Debug\neuralDuino.h
+ C:\Users\joss\AppData\Local\Temp\VMBuilds\ledsFFT\teensy36\Debug\NeuralNetwork.h \
+ C:\Program\ Files\ (x86)\Microsoft\ Visual\ Studio\2017\Community\Common7\IDE\Extensions\sivbitce.zrh\Micro\ Platforms\default\debuggers\VM_DBG/VM_DBG.h

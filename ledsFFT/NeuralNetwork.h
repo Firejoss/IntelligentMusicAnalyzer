@@ -8,9 +8,8 @@
 using namespace std;
 
 //#define DEBUG
-#define LEARNING_RATE 0.4
-#define FALSE LOW
-#define TRUE HIGH
+#define DEBUG_MEMORY
+#define LEARNING_RATE 0.98
 
 #ifdef __arm__
 // should use uinstd.h to define sbrk but Due causes a conflict
@@ -27,6 +26,7 @@ typedef float(*activFn)(float, int);
 
 struct Util {
 
+	// returns the transpose of a "matrix" (m, n) => (n, m)
 	static vector<vector<float>> transpose(vector<vector<float>> const& v1) {
 
 		if (v1.empty()) {
@@ -71,7 +71,16 @@ struct Util {
 
 	static void printMsgFloat(String msg, float argument) {
 		Serial.print(msg);
-		Serial.println(argument, 10);
+		Serial.println(argument, 5);
+	}
+
+	static void printMsgFloats(String msg, vector<float> arguments) {
+		Serial.print(msg);
+		for (auto argument : arguments) {
+			Serial.print(argument, 5);
+			Serial.print(", ");
+		}
+		Serial.print("\n");
 	}	
 	
 	static void printMsgInt(String msg, int argument) {
@@ -95,15 +104,21 @@ struct TrainingSet {
 	vector<float> idealOutputValues;
 
 	TrainingSet()
-	{}
+	{}	
+	
+	TrainingSet(int inputSize_, int idealOutputSize_)
+	{
+		inputValues.resize(inputSize_);
+		idealOutputValues.resize(idealOutputSize_);
+	}
 
-	TrainingSet(float inputs_[], vector<float> desiredOutput_) :
+	TrainingSet(float inputs_[], int inputSize_, vector<float> const& desiredOutput_) :
 		idealOutputValues(desiredOutput_)
 	{
-		inputValues.insert(inputValues.begin(), inputs_, inputs_ + sizeof(inputs_) / sizeof(inputs_[0]));
+		inputValues.insert(inputValues.begin(), inputs_, inputs_ + inputSize_);
 	}	
 	
-	TrainingSet(vector<float> inputs_, vector<float> desiredOutput_) :
+	TrainingSet(vector<float> const& inputs_, vector<float> const& desiredOutput_) :
 		inputValues(inputs_),
 		idealOutputValues(desiredOutput_)
 	{}
@@ -151,9 +166,9 @@ public:
 
 	float train(vector<TrainingSet> &trainingData_, float idealError, u_int maxEpochs);
 
-	int feedInputs(TrainingSet &trainingInputValues);
+	int feedInputs(TrainingSet & trainingInputValues);
 
-	vector<float>* propagate();
+	int propagate();
 
 	float feedOutputIdealValues(TrainingSet & trainingSet);
 

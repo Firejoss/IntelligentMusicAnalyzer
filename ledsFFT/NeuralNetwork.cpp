@@ -91,33 +91,43 @@ int NeuralNetwork::randomizeBiases() {
 
 float NeuralNetwork::train(vector<TrainingSet> &trainingData_, float idealError, u_int maxEpochs) {
 
-	float error = 1 + idealError;
+	float error;
 	u_int numEpochs = 0;
 
 #ifdef DEBUG
 	Serial.println("\n--- Starting NN training ---");
-#endif // DEBUG
+#endif
 
-	while (error > idealError && numEpochs < maxEpochs) {
-
+	do {
 		numEpochs++;
 		Util::printMsgInt("\nEpoch ", numEpochs);
 
-		for (auto &trainingSet : trainingData_) {
+		error = 0;
 
+		for (auto& trainingSet : trainingData_) {
+
+#ifdef DEBUG
 			Serial.println("Feed inputs...");
+#endif
 			feedInputs(trainingSet);
+#ifdef DEBUG
 			Serial.println("Propagate...");
+#endif
 			propagate();
 
+#ifdef DEBUG
 			Serial.println("Process error...");
-			error = feedOutputIdealValues(trainingSet);
-			Util::printMsgFloat("Error => ", error);
+#endif
+			error += feedOutputIdealValues(trainingSet);
 
 			backpropagate();
 		}
+		error /= trainingData_.size();
+//#ifdef DEBUG
+		Util::printMsgFloat("Error => ", error);
+//#endif
 
-	}
+	} while (error > idealError && numEpochs < maxEpochs);
 
 	return error;
 }
@@ -125,7 +135,7 @@ float NeuralNetwork::train(vector<TrainingSet> &trainingData_, float idealError,
 int NeuralNetwork::feedInputs(TrainingSet &trainingSet) {
 
 	if (trainingSet.inputValues.size() != neuronOutputs.front().size()) {
-		Util::printMsgInts("input and trainingset vectors have different sizes : ", 
+		Util::printMsgInts("trainingset and input vectors have different sizes : ", 
 			{ trainingSet.inputValues.size(), neuronOutputs.front().size() });
 		return -1;
 	}
@@ -141,14 +151,12 @@ int NeuralNetwork::feedInputs(TrainingSet &trainingSet) {
 		Serial.print(" | ");
 	}
 	Serial.print("\n\n");
-
-#endif // DEBUG
+#endif
 
 	return 0;
 }
 
-
-vector<float>* NeuralNetwork::propagate() {
+int NeuralNetwork::propagate() {
 
 	int layersNum = neuronOutputs.size();
 
@@ -167,22 +175,29 @@ vector<float>* NeuralNetwork::propagate() {
 			neuronOutputs[i][j] = sigmoid(zs[i - 1][j]);
 		}
 	}
-	return &(neuronOutputs.back());
+#ifdef DEBUG
+	printOutput();
+#endif
+	return 0;
 }
 
 float NeuralNetwork::feedOutputIdealValues(TrainingSet &trainingSet) {
 
 	if (trainingSet.idealOutputValues.size() != neuronOutputs.back().size()) {
-		Serial.println("Ideal output and output vectors have different sizes");
+		Util::printMsg("Ideal output and output vectors have different sizes");
 		return -1;
 	}
 
 	int outputNum = neuronOutputs.back().size();
 	float error = 0;
 
+#ifdef DEBUG
+	Util::printMsgFloats("Feeding IDEAL values => ", trainingSet.idealOutputValues);
+#endif
+
 	for (int i = 0; i < outputNum; i++) {
 		errors[i] = neuronOutputs.back()[i] - trainingSet.idealOutputValues[i];
-		error += errors[i];
+		error += abs(errors[i]);
 	}
 	return error;
 }
@@ -199,8 +214,6 @@ int NeuralNetwork::backpropagate() {
 		for (int j = 0; j < weights.back()[i].size(); j++) {
 
 			weights.back()[i][j] -= deltas.back()[i] * neuronOutputs[neuronOutputs.size() - 2][j];
-		
-			//Util::printMsgFloat("Weights back : ", weights.back()[i][j]);
 		}
 	}
 	// ----------------------------------

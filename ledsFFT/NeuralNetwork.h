@@ -9,7 +9,7 @@ using namespace std;
 
 //#define DEBUG
 #define DEBUG_MEMORY
-#define LEARNING_RATE 0.98
+#define LEARNING_RATE 0.95
 
 #ifdef __arm__
 // should use uinstd.h to define sbrk but Due causes a conflict

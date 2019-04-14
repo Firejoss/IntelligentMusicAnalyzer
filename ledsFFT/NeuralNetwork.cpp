@@ -25,7 +25,7 @@ int NeuralNetwork::init(vector<int> layersSizes_) {
 	biases.resize(layersSizes_.size() - 1);
 	zs.resize(layersSizes_.size() - 1);
 
-	// error vector has the same output vector's size
+	// error vector is similar to output vector
 	errors.resize(layersSizes_.back());
 
 	deltas.resize(layersSizes_.size() - 1);

@@ -139,12 +139,12 @@ void updateCurrentBongoRecordingSelection(vector<float> &currentBongosSelection)
 	
 	currentBongosSelection = { digitalRead(BONGO_SELECT_BTN_PIN_1), digitalRead(BONGO_SELECT_BTN_PIN_2) };
 
-//#ifdef DEBUG
-//	Serial.print("BONGO RECORD SELECTION : ");
-//	Serial.print(currentBongoRecording[0]);
-//	Serial.print(" - ");
-//	Serial.println(currentBongoRecording[1]);
-//#endif
+#ifdef DEBUG_BONGO_SELECTION
+	Serial.print("BONGO RECORD SELECTION : ");
+	Serial.print(currentBongoRecording[0]);
+	Serial.print(" - ");
+	Serial.println(currentBongoRecording[1]);
+#endif
 
 }
 
@@ -156,7 +156,7 @@ void setup() {
 
 	realInputData->inputValues.resize(NN_INPUT_SIZE);
 
-#ifdef SERIAL_DEBUG
+#ifdef DEBUG_SERIAL
 	Serial.begin(115200);
 #endif
 
@@ -184,7 +184,7 @@ void loop() {
 	vector<float> v2;
 	vector<float> v3;
 	vector<float> v4;
-	for (size_t i = 0; i < NUM_INPUTS; i++)
+	for (size_t i = 0; i < NN_INPUT_SIZE; i++)
 	{
 		v0.push_back(((rand() % 200) - 100) / 100.0);
 		v1.push_back(((rand() % 200) - 100) / 100.0);

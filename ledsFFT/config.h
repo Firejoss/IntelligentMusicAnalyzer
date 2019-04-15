@@ -17,17 +17,17 @@
 #define NN_INPUT_SIZE					512
 #endif
 
-#define NN_HIDDEN_LAYERS_SIZES			{ 32, 32 }	
+#define NN_HIDDEN_LAYERS_SIZES			{ 64, 128, 64, 64, 16 }	
 #define NN_OUTPUT_SIZE					2
 
 //#define SAVE_TRAINING_DATA_SDCARD
 
 #define FILENAME_TRAIN_DATA             "nn_train1.dat"
-#define MAX_TRAIN_DATA_SIZE				200
+#define MAX_TRAIN_DATA_SIZE				60		// *** TRAINING SIZE ***
 #define FFT_SUM_ADD_TRAININGSET_THRES	0.15
 
 #define MAX_EPOCHS						120
-#define TARGET_ERROR					0.05
+#define TARGET_ERROR					0.1	// *** TARGET ERROR ***
 
 
 // defines which bongo is to be played 

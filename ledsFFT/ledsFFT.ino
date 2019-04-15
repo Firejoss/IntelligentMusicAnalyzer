@@ -16,7 +16,7 @@ vector<TrainingSet> trainingData;
 
 TrainingSet* realInputData = new TrainingSet(NN_INPUT_SIZE, NN_OUTPUT_SIZE);
 
-vector<float> currentBongoRecording = BONGO_NOISE_RECORDING;
+vector<nn_double> currentBongoRecording = BONGO_NOISE_RECORDING;
 
 //-----------------------------------------------------------------------------------------------
 
@@ -35,7 +35,7 @@ AudioConnection          patchCord0(adc1, fft1);
 //-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
 
-void pulseLed(int led_pin, float power) {
+void pulseLed(int led_pin, nn_double power) {
 
 	if (power > 100) power = 100;
 	if (power < 0) power = 0;
@@ -121,7 +121,7 @@ int deleteTrainingDataSDCardFile() {
 	return SD.remove(FILENAME_TRAIN_DATA);
 }
 
-void addTrainingSet(vector<float> &idealOutput) {
+void addTrainingSet(vector<nn_double> &idealOutput) {
 	
 	if (!fft1.available()) return;
 
@@ -209,7 +209,7 @@ void initDisplay() {
 	digitalWrite(B_PIN, OFF);
 }
 
-void updateCurrentBongoRecordingSelection(vector<float> &currentBongosSelection) {
+void updateCurrentBongoRecordingSelection(vector<nn_double> &currentBongosSelection) {
 	
 	currentBongosSelection = { digitalRead(BONGO_SELECT_BTN_PIN_1), digitalRead(BONGO_SELECT_BTN_PIN_2) };
 
@@ -261,11 +261,11 @@ void setup() {
 void loop() {
 
 #ifdef TEST_NN
-	vector<float> v0;
-	vector<float> v1;
-	vector<float> v2;
-	vector<float> v3;
-	vector<float> v4;
+	vector<nn_double> v0;
+	vector<nn_double> v1;
+	vector<nn_double> v2;
+	vector<nn_double> v3;
+	vector<nn_double> v4;
 	for (size_t i = 0; i < NN_INPUT_SIZE; i++)
 	{
 		v0.push_back(((rand() % 200) - 100) / 100.0);
@@ -319,7 +319,7 @@ void loop() {
 		bongoNeuralNetwork->printOutput();
 	}
 	while (1) {
-		//testNeuralNetwork(bongoNeuralNetwork);
+		testNeuralNetwork(bongoNeuralNetwork);
 		delay(20);
 	}
 

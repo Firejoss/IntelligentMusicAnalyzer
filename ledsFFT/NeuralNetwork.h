@@ -4,12 +4,19 @@
 
 #include <vector>
 #include "Arduino.h"
+#include <algorithm>
+//#include <random>
 
 using namespace std;
 
+//auto rng = default_random_engine{};
+
+typedef float nn_double;
+
+
 //#define DEBUG
 #define DEBUG_MEMORY
-#define LEARNING_RATE 1.0
+#define LEARNING_RATE 0.1
 
 #ifdef __arm__
 // should use uinstd.h to define sbrk but Due causes a conflict
@@ -18,16 +25,26 @@ extern "C" char* sbrk(int incr);
 extern char *__brkval;
 #endif  // __arm__
 
-#define sigmoid(x)			1.0 / (1.0 + (float)exp(-(float)(x)))
-#define sigmoidPrime(x)		(float)(sigmoid(x) * (1.0 - sigmoid(x)))
+#define sigmoid(x)			1.0 / (1.0 + (nn_double)exp(-(nn_double)(x)))
+#define sigmoidPrime(x)		(nn_double)(sigmoid(x) * (1.0 - sigmoid(x)))
 
 
-typedef float(*activFn)(float, int);
+typedef nn_double(*activFn)(nn_double, int);
+
 
 struct Util {
 
+	static nn_double sumabs(vector<nn_double> const& v1) {
+
+		nn_double sum = 0;
+		for (auto& val : v1) {
+			sum += val > 0 ? val : -1 * val;
+		}
+		return sum;
+	}
+
 	// returns the transpose of a "matrix" (m, n) => (n, m)
-	static int transpose(vector<vector<float>> const& v1, vector<vector<float>> &v1Transp) {
+	static int transpose(vector<vector<nn_double>> const& v1, vector<vector<nn_double>> &v1Transp) {
 
 		if (v1.empty()) {
 			Util::printMsg("Nothing to transpose.");
@@ -41,9 +58,9 @@ struct Util {
 			column.resize(columnSize);
 		}
 
-		for (size_t i = 0; i < v1.size(); i++)
+		for (u_int32_t i = 0; i < v1.size(); i++)
 		{
-			for (size_t j = 0; j < v1[i].size(); j++)
+			for (u_int32_t j = 0; j < v1[i].size(); j++)
 			{
 				v1Transp[j][i] = v1[i][j];
 			}
@@ -52,14 +69,14 @@ struct Util {
 	}
 
 	// computes the dot product of two vectors
-	static float dot(vector<float> v1, vector<float> v2) {
+	static nn_double dot(vector<nn_double> v1, vector<nn_double> v2) {
 
 		if (v1.size() != v2.size()) {
 			printMsgInts("Dot product error. Unequal vectors sizes : ", { v1.size(), v2.size() });
 			return 0;
 		}
 
-		float result = 0;
+		nn_double result = 0;
 		for (int i = 0, size = v1.size(); i < size; i++) {
 			result += v1[i] * v2[i];
 		}
@@ -70,12 +87,12 @@ struct Util {
 		Serial.println(msg);
 	}
 
-	static void printMsgFloat(String msg, float argument) {
+	static void printMsgFloat(String msg, nn_double argument) {
 		Serial.print(msg);
 		Serial.println(argument, 5);
 	}
 
-	static void printMsgFloats(String msg, vector<float> arguments) {
+	static void printMsgFloats(String msg, vector<nn_double> arguments) {
 		Serial.print(msg);
 		for (auto argument : arguments) {
 			Serial.print(argument, 5);
@@ -101,8 +118,8 @@ struct Util {
 
 struct TrainingSet {
 
-	vector<float> inputValues;
-	vector<float> idealOutputValues;
+	vector<nn_double> inputValues;
+	vector<nn_double> idealOutputValues;
 
 	TrainingSet()
 	{}	
@@ -113,13 +130,13 @@ struct TrainingSet {
 		idealOutputValues.resize(idealOutputSize_);
 	}
 
-	TrainingSet(float inputs_[], int inputSize_, vector<float> const& desiredOutput_) :
+	TrainingSet(nn_double inputs_[], int inputSize_, vector<nn_double> const& desiredOutput_) :
 		idealOutputValues(desiredOutput_)
 	{
 		inputValues.insert(inputValues.begin(), inputs_, inputs_ + inputSize_);
 	}	
 	
-	TrainingSet(vector<float> const& inputs_, vector<float> const& desiredOutput_) :
+	TrainingSet(vector<nn_double> const& inputs_, vector<nn_double> const& desiredOutput_) :
 		inputValues(inputs_),
 		idealOutputValues(desiredOutput_)
 	{}
@@ -145,14 +162,14 @@ class NeuralNetwork
 
 protected:
 
-	vector<vector<float>>			neuronOutputs;
-	vector<vector<float>>			zs;			// neuron's inputs * weights + bias
+	vector<vector<nn_double>>			neuronOutputs;
+	vector<vector<nn_double>>			zs;			// neuron's inputs * weights + bias
 
-	vector<vector<vector<float>>>	weights;
-	vector<vector<float>>			biases;
+	vector<vector<vector<nn_double>>>	weights;
+	vector<vector<nn_double>>			biases;
 
-	vector<vector<float>>			deltas;
-	vector<float>					errors;		// computed substracting ideal values from outputs
+	vector<vector<nn_double>>			deltas;
+	vector<nn_double>					errors;		// computed substracting ideal values from outputs
 
 public:
 	NeuralNetwork();
@@ -165,13 +182,13 @@ public:
 
 	int randomizeBiases();
 
-	float train(vector<TrainingSet> & trainingData_, float idealError, u_int maxEpochs);
+	nn_double train(vector<TrainingSet> & trainingData_, nn_double idealError, u_int maxEpochs);
 
 	int feedInputs(TrainingSet & trainingInputValues);
 
 	int propagate();
 
-	float feedOutputIdealValues(TrainingSet & trainingSet);
+	vector<nn_double>& feedOutputIdealValues(TrainingSet & trainingSet);
 
 	int backpropagate();
 

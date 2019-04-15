@@ -20,11 +20,14 @@
 #define NN_HIDDEN_LAYERS_SIZES			{ 32, 32 }	
 #define NN_OUTPUT_SIZE					2
 
-#define MAX_TRAIN_DATA_SIZE				150
+//#define SAVE_TRAINING_DATA_SDCARD
+
+#define FILENAME_TRAIN_DATA             "nn_train1.dat"
+#define MAX_TRAIN_DATA_SIZE				200
 #define FFT_SUM_ADD_TRAININGSET_THRES	0.15
 
-#define MAX_EPOCHS						100
-#define TARGET_ERROR					0.08
+#define MAX_EPOCHS						120
+#define TARGET_ERROR					0.05
 
 
 // defines which bongo is to be played 
@@ -44,6 +47,7 @@
 #define BONGO_SELECT_BTN_PIN_1			15
 #define BONGO_SELECT_BTN_PIN_2			20
 #define DEBUG_SERIAL
+#define DEBUG_SDCARD
 //#define DEBUG_BONGO_SELECTION
 
 // prevent compile time error

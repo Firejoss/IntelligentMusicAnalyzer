@@ -25,6 +25,8 @@ int NeuralNetwork::init(vector<int> layersSizes_) {
 	biases.resize(layersSizes_.size() - 1);
 	zs.resize(layersSizes_.size() - 1);
 
+	Util::printMsgInts("weights - biases - zs : ", { weights.size(), biases.size(), zs.size() });
+
 	// error vector is similar to output vector
 	errors.resize(layersSizes_.back());
 
@@ -89,7 +91,7 @@ int NeuralNetwork::randomizeBiases() {
 	return 0;
 }
 
-float NeuralNetwork::train(vector<TrainingSet> &trainingData_, float idealError, u_int maxEpochs) {
+float NeuralNetwork::train(vector<TrainingSet> & trainingData_, float idealError, u_int maxEpochs) {
 
 	float error;
 	u_int numEpochs = 0;
@@ -220,9 +222,10 @@ int NeuralNetwork::backpropagate() {
 
 	for (int k = deltas.size() - 2; k >= 0; k--) {
 
-		vector<vector<float>> transpWeights = Util::transpose(weights[k+1]);
-		
-		for (int l = 0; l < transpWeights[k].size(); l++) {
+		vector<vector<float>> transpWeights;
+		Util::transpose(weights[k + 1], transpWeights);
+
+		for (int l = 0; l < transpWeights.size(); l++) {
 
 			deltas[k][l] = Util::dot(deltas[k + 1], transpWeights[l]) * sigmoidPrime(zs[k][l]) * LEARNING_RATE;
 		}

@@ -9,7 +9,7 @@ using namespace std;
 
 //#define DEBUG
 #define DEBUG_MEMORY
-#define LEARNING_RATE 0.95
+#define LEARNING_RATE 1.0
 
 #ifdef __arm__
 // should use uinstd.h to define sbrk but Due causes a conflict
@@ -27,31 +27,32 @@ typedef float(*activFn)(float, int);
 struct Util {
 
 	// returns the transpose of a "matrix" (m, n) => (n, m)
-	static vector<vector<float>> transpose(vector<vector<float>> const& v1) {
+	static int transpose(vector<vector<float>> const& v1, vector<vector<float>> &v1Transp) {
 
 		if (v1.empty()) {
-			return v1;
+			Util::printMsg("Nothing to transpose.");
+			return 1;
 		}
 
-		vector<vector<float>> v2;
-		v2.resize(v1[0].size());
+		v1Transp.resize(v1[0].size());
 
-		for (auto & columnVect : v2) {
-			columnVect.resize(v1.size());
+		int columnSize = v1.size();
+		for (auto& column : v1Transp) {
+			column.resize(columnSize);
 		}
 
 		for (size_t i = 0; i < v1.size(); i++)
 		{
 			for (size_t j = 0; j < v1[i].size(); j++)
 			{
-				v2[j][i] = v1[i][j];
+				v1Transp[j][i] = v1[i][j];
 			}
 		}
-		return v2;
+		return 0;
 	}
 
 	// computes the dot product of two vectors
-	static float dot(vector<float> const& v1, vector<float> const& v2) {
+	static float dot(vector<float> v1, vector<float> v2) {
 
 		if (v1.size() != v2.size()) {
 			printMsgInts("Dot product error. Unequal vectors sizes : ", { v1.size(), v2.size() });
@@ -164,7 +165,7 @@ public:
 
 	int randomizeBiases();
 
-	float train(vector<TrainingSet> &trainingData_, float idealError, u_int maxEpochs);
+	float train(vector<TrainingSet> & trainingData_, float idealError, u_int maxEpochs);
 
 	int feedInputs(TrainingSet & trainingInputValues);
 

@@ -4,6 +4,8 @@
  Author:	joss
 */
 
+#include <SD.h>
+#include <SPI.h>
 #include <Audio.h>
 #include <Easing.h>
 #include "NeuralNetwork.h"
@@ -48,6 +50,77 @@ void pulseLed(int led_pin, float power) {
 	}
 }
 
+
+int buildTrainingSetString(String& trainSetStr_, TrainingSet& trainingSet_) {
+
+	if (trainingSet_.inputValues.empty() || trainingSet_.idealOutputValues.empty()) {
+		Util::printMsg("buildTrainingSetString() : training set is incomplete. Abort.");
+		return -1;
+	}
+
+	for (auto& inputVal : trainingSet_.inputValues) {
+		trainSetStr_.append(String(inputVal, 12));
+		trainSetStr_.append(' ');
+	}
+	trainSetStr_.append('#');
+	for (auto& outputIdealVal : trainingSet_.idealOutputValues) {
+		trainSetStr_.append(String(outputIdealVal, 12));
+	}
+	return 0;
+}
+
+int saveTrainingSetSDCard(TrainingSet& trainingSet_) {
+
+	String trainingSetStr = "";
+
+	// open the file. note that only one file can be open at a time,
+	// so you have to close this one before opening another.
+	File dataFile = SD.open(FILENAME_TRAIN_DATA, FILE_WRITE);
+
+	if (dataFile) 
+	{
+		if (-1 == buildTrainingSetString(trainingSetStr, trainingSet_)) {
+			return -1;
+		}
+
+		dataFile.println(trainingSetStr);
+		dataFile.close();
+		return 0;
+	}
+#ifdef DEBUG_SDCARD
+	String msg = "saveTrainingSetSDCard() : error opening file ";
+	Util::printMsg(msg.append(FILENAME_TRAIN_DATA));
+#endif
+	return -1;
+}
+
+int readNextTrainingSetSDCard(TrainingSet& trainingSet_) {
+
+	if (!SD.exists(FILENAME_TRAIN_DATA)) {
+#ifdef DEBUG_SDCARD
+		Util::printMsg("readNextTrainingSetSDCard() : file does not exist. Abort.");
+#endif
+		return -1;
+	}
+
+	// open the file. note that only one file can be open at a time,
+	// so you have to close this one before opening another.
+	File dataFile = SD.open(FILENAME_TRAIN_DATA, FILE_READ);
+
+	return 0;
+}
+
+int deleteTrainingDataSDCardFile() {
+
+	if (!SD.exists(FILENAME_TRAIN_DATA)) {
+#ifdef DEBUG_SDCARD
+		Util::printMsg("deleteTrainingDataSDCardFile() : file does not exist.");
+#endif
+		return 0;
+	}
+	return SD.remove(FILENAME_TRAIN_DATA);
+}
+
 void addTrainingSet(vector<float> &idealOutput) {
 	
 	if (!fft1.available()) return;
@@ -64,8 +137,12 @@ void addTrainingSet(vector<float> &idealOutput) {
 			realInputData->inputValues[i] = fft1.read(i);
 		}
 
+#ifdef SAVE_TRAINING_DATA_SDCARD
+		saveTrainingSetSDCard(*realInputData);
+#else
 		realInputData->idealOutputValues = idealOutput;
 		trainingData.push_back(*realInputData);
+#endif
 
 #ifdef DEBUG
 		Util::printMsgFloats("--- New training set added --- idealOutput : ", { idealOutput[0], idealOutput[1] });
@@ -81,7 +158,7 @@ void addTrainingSet(vector<float> &idealOutput) {
 void testNeuralNetwork(NeuralNetwork* nn) {
 
 #ifdef DEBUG_MEMORY
-	Util::printMsgInt("Free SRAM before NN real testing", Memory::getFreeMemory());
+	Util::printMsgInt("Free SRAM before NN real testing : ", Memory::getFreeMemory());
 #endif
 
 	if (!fft1.available()) return;
@@ -98,9 +175,6 @@ void testNeuralNetwork(NeuralNetwork* nn) {
 		for (int i = 0; i < NN_INPUT_SIZE; i++) {
 			realInputData->inputValues[i] = fft1.read(i);
 		}
-
-		//TrainingSet* realInputData = new TrainingSet(fftSpectrum, NN_INPUT_SIZE, {});
-
 		nn->feedInputs(*realInputData);
 		nn->propagate();
 		nn->printOutput();
@@ -154,8 +228,6 @@ void updateCurrentBongoRecordingSelection(vector<float> &currentBongosSelection)
 
 void setup() {
 
-	realInputData->inputValues.resize(NN_INPUT_SIZE);
-
 #ifdef DEBUG_SERIAL
 	Serial.begin(115200);
 #endif
@@ -174,6 +246,16 @@ void setup() {
 #ifdef DEBUG_MEMORY
 	Util::printMsgInt("Free SRAM AFTER NN init => ", Memory::getFreeMemory());
 #endif
+
+#ifdef SAVE_TRAINING_DATA_SDCARD
+	if (!SD.begin(BUILTIN_SDCARD)) {
+		Util::printMsg("SD Card failed, or not present");
+		return;
+	}
+	Util::printMsg("card initialized.");
+	deleteTrainingDataSDCardFile();
+#endif
+
 }
 
 void loop() {
@@ -223,17 +305,21 @@ void loop() {
 #else
 
 	while (trainingData.size() < MAX_TRAIN_DATA_SIZE) {
-		// adding a training set to the training database if fft threshold exceeded
+		// adding a training set to the training database when fft is triggered
 		updateCurrentBongoRecordingSelection(currentBongoRecording);
 		addTrainingSet(currentBongoRecording);
 	}
 
 	bongoNeuralNetwork->train(trainingData, TARGET_ERROR, MAX_EPOCHS);
 
+
+	for (auto& tset : trainingData) {
+		bongoNeuralNetwork->feedInputs(tset);
+		bongoNeuralNetwork->propagate();
+		bongoNeuralNetwork->printOutput();
+	}
 	while (1) {
-
-		testNeuralNetwork(bongoNeuralNetwork);
-
+		//testNeuralNetwork(bongoNeuralNetwork);
 		delay(20);
 	}
 

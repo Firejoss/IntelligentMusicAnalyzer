@@ -19,13 +19,16 @@ NeuralNetwork::~NeuralNetwork()
 
 int NeuralNetwork::init(vector<int> layersSizes_) {
 
-	// --- INPUT, INTERMEDIATE AND OUTPUT LAYERS ---
+	// --- ACTIVATION FUNCTIONS ---
+	layersActivationFn = &Util::sigmoidFn;
+	outputActivationFn = &Util::sigmoidFn;
 
+	// --- INPUT, INTERMEDIATE AND OUTPUT LAYERS 
 	weights.resize(layersSizes_.size() - 1);
 	biases.resize(layersSizes_.size() - 1);
 	zs.resize(layersSizes_.size() - 1);
 
-	// error vector is similar to output vector
+	// errors vector is same size as output vector
 	errors.resize(layersSizes_.back());
 
 	deltas.resize(layersSizes_.size() - 1);
@@ -60,7 +63,7 @@ int NeuralNetwork::randomizeWeights() {
 	for (auto& layer : weights) {
 
 		// sublayers containing the weights of the connections
-		// between one neuron and each neuron of the next layer
+		// between one neuron and each neuron of the previous layer
 		for (auto& subLayer : layer) {
 
 			// every weight initialized randomly in [-0.99 ; 0.99]
@@ -138,10 +141,12 @@ nn_double NeuralNetwork::train(vector<TrainingSet> & trainingData_, nn_double id
 int NeuralNetwork::feedInputs(TrainingSet &trainingSet) {
 
 	if (trainingSet.inputValues.size() != neuronOutputs.front().size()) {
+
 		Util::printMsgInts("trainingset and input vectors have different sizes : ", 
 			{ trainingSet.inputValues.size(), neuronOutputs.front().size() });
 		return -1;
 	}
+
 	int inputSize = neuronOutputs.front().size();
 	for (int i = 0; i < inputSize; i++) {
 		neuronOutputs.front()[i] = trainingSet.inputValues[i];
@@ -163,7 +168,7 @@ int NeuralNetwork::propagate() {
 
 	int layersNum = neuronOutputs.size();
 
-	// begin at 1 because 0 is the input layer;
+	// begin at 1 because index 0 is the input layer;
 	for (int i = 1; i < layersNum; i++) {
 
 		for (int j = 0; j < neuronOutputs[i].size(); j++) {
@@ -175,7 +180,13 @@ int NeuralNetwork::propagate() {
 
 			zs[i - 1][j] = sum + biases[i - 1][j];
 
-			neuronOutputs[i][j] = sigmoid(zs[i - 1][j]);
+			if (i != neuronOutputs.size() - 1) {
+				neuronOutputs[i][j] = layersActivationFn(zs[i - 1][j], false);
+			}
+			else 
+			{
+				neuronOutputs[i][j] = outputActivationFn(zs[i - 1][j], false);
+			}
 		}
 	}
 #ifdef DEBUG
@@ -208,7 +219,8 @@ int NeuralNetwork::backpropagate() {
 	//-- first initating backward pass --
 	for (int i = 0; i < errors.size(); i++) {
 
-		deltas.back()[i] = errors[i] * sigmoidPrime(zs.back()[i]) * LEARNING_RATE;
+		deltas.back()[i] = errors[i] * outputActivationFn(zs.back()[i], true)
+									 * LEARNING_RATE;
 
 		biases.back()[i] -= deltas.back()[i];
 
@@ -226,7 +238,9 @@ int NeuralNetwork::backpropagate() {
 
 		for (int l = 0; l < transpWeights.size(); l++) {
 
-			deltas[k][l] = Util::dot(deltas[k + 1], transpWeights[l]) * sigmoidPrime(zs[k][l]) * LEARNING_RATE;
+			deltas[k][l] = Util::dot(deltas[k + 1], transpWeights[l]) 
+							* layersActivationFn(zs[k][l], true) 
+							* LEARNING_RATE;
 		}
 
 		for (int m = 0; m < weights[k].size(); m++) {

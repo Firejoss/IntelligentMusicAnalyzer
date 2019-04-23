@@ -2,7 +2,7 @@
 
 //#define TEST_NN
 
-//#define FFT1024		// if commented out, FFT 256 resolution will be set by default
+#define FFT1024		// if commented out, FFT resolution will be 256 by default
 #ifdef FFT1024
 #undef FFT256
 #else
@@ -12,22 +12,24 @@
 /* ----- Neural network defines & variables ----- */
 // imposed number of NN inputs given the data vector provided by the fft
 #ifdef FFT256
-#define NN_INPUT_SIZE					128
-#elif FFT1024
-#define NN_INPUT_SIZE					512
+#define FFT_INPUT_SIZE					128
+#endif
+#ifdef FFT1024
+#define FFT_INPUT_SIZE					512
 #endif
 
-#define NN_HIDDEN_LAYERS_SIZES			{ 64, 128, 64, 64, 16 }	
+#define NN_INPUT_SIZE					10
+#define NN_HIDDEN_LAYERS_SIZES			{ 64, 16 }	
 #define NN_OUTPUT_SIZE					2
 
 //#define SAVE_TRAINING_DATA_SDCARD
 
 #define FILENAME_TRAIN_DATA             "nn_train1.dat"
-#define MAX_TRAIN_DATA_SIZE				60		// *** TRAINING SIZE ***
-#define FFT_SUM_ADD_TRAININGSET_THRES	0.15
+#define MAX_TRAIN_DATA_SIZE				1400		// *** TRAINING SIZE ***
+#define FFT_THRESHOLD					0.12
 
-#define MAX_EPOCHS						120
-#define TARGET_ERROR					0.1	// *** TARGET ERROR ***
+#define MAX_EPOCHS						800
+#define TARGET_ERROR					0.05	// *** TARGET ERROR ***
 
 
 // defines which bongo is to be played 
@@ -50,7 +52,7 @@
 #define DEBUG_SDCARD
 //#define DEBUG_BONGO_SELECTION
 
-// prevent compile time error
+// TEMPORARY : prevent compile time error when using std::vector
 namespace std {
 	void __throw_bad_alloc()
 	{

@@ -4,12 +4,15 @@
  Author:	joss
 */
 
-#include <SD.h>
-#include <SPI.h>
-#include <Audio.h>
+#include <map>
 #include <Easing.h>
-#include "NeuralNetwork.h"
+#include <Audio.h>
 #include "config.h"
+#include "NeuralNetwork.h"
+#ifdef SAVE_TRAINING_DATA_SDCARD
+	#include <SD.h>
+	#include <SPI.h>
+#endif
 
 NeuralNetwork* bongoNeuralNetwork;
 vector<TrainingSet> trainingData;
@@ -31,6 +34,9 @@ AudioAnalyzeFFT256		 fft1;
 
 AudioConnection          patchCord0(adc1, fft1);
 
+vector<float>			lastFFTOutput;
+vector<int>				lastFFTMaxPeaks;
+
 
 //-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
@@ -50,135 +56,158 @@ void pulseLed(int led_pin, nn_double power) {
 	}
 }
 
+bool detectAttack() {
 
-int buildTrainingSetString(String& trainSetStr_, TrainingSet& trainingSet_) {
+	int startIndex = 2;				// ignore 0 and 1 index for irrelevant fft values
 
-	if (trainingSet_.inputValues.empty() || trainingSet_.idealOutputValues.empty()) {
-		Util::printMsg("buildTrainingSetString() : training set is incomplete. Abort.");
-		return -1;
+	bool hasThresholdPeak = false;
+	vector<float> fftOutput;
+	vector<float> fftDeltas;
+
+	for (size_t i = startIndex; i < FFT_INPUT_SIZE; i++) {
+
+		float val = fft1.read(i);
+		fftOutput.push_back(val > 0.02 ? val : 0);
+		fftDeltas.push_back(fftOutput.back() - lastFFTOutput[i - startIndex]);
+
+		hasThresholdPeak = hasThresholdPeak || val > FFT_THRESHOLD;
+	}
+	if (!hasThresholdPeak) {
+		return false;
 	}
 
-	for (auto& inputVal : trainingSet_.inputValues) {
-		trainSetStr_.append(String(inputVal, 12));
-		trainSetStr_.append(' ');
+	// check if new peaks appeared
+	float deltasSum = 0;
+	for (size_t j = 0; j < fftDeltas.size(); j++) {
+		deltasSum += fftDeltas[j] > 0.02 ? fftDeltas[j] : 0;
 	}
-	trainSetStr_.append('#');
-	for (auto& outputIdealVal : trainingSet_.idealOutputValues) {
-		trainSetStr_.append(String(outputIdealVal, 12));
+	if (deltasSum < 0.30) {
+		return false;
 	}
-	return 0;
-}
 
-int saveTrainingSetSDCard(TrainingSet& trainingSet_) {
+	// get max peaks indexes
+	vector<int> fftMaxPeaks;
+	vector<float> fftOutputTemp(fftOutput.begin(), fftOutput.end());
 
-	String trainingSetStr = "";
-
-	// open the file. note that only one file can be open at a time,
-	// so you have to close this one before opening another.
-	File dataFile = SD.open(FILENAME_TRAIN_DATA, FILE_WRITE);
-
-	if (dataFile) 
+	while (fftMaxPeaks.size() < NN_INPUT_SIZE)
 	{
-		if (-1 == buildTrainingSetString(trainingSetStr, trainingSet_)) {
-			return -1;
+		int outputTempCount = fftOutputTemp.size();
+		float maxVal = 0;
+		int maxValIndex = 0;
+
+		for (size_t k = 0; k < outputTempCount; k++)
+		{
+			if (fftOutputTemp[k] > maxVal) {
+				maxVal = fftOutputTemp[k];
+				maxValIndex = k;
+			}
 		}
-
-		dataFile.println(trainingSetStr);
-		dataFile.close();
-		return 0;
-	}
-#ifdef DEBUG_SDCARD
-	String msg = "saveTrainingSetSDCard() : error opening file ";
-	Util::printMsg(msg.append(FILENAME_TRAIN_DATA));
-#endif
-	return -1;
-}
-
-int readNextTrainingSetSDCard(TrainingSet& trainingSet_) {
-
-	if (!SD.exists(FILENAME_TRAIN_DATA)) {
-#ifdef DEBUG_SDCARD
-		Util::printMsg("readNextTrainingSetSDCard() : file does not exist. Abort.");
-#endif
-		return -1;
+		fftMaxPeaks.push_back(maxValIndex);
+		fftOutputTemp[maxValIndex] = 0;
 	}
 
-	// open the file. note that only one file can be open at a time,
-	// so you have to close this one before opening another.
-	File dataFile = SD.open(FILENAME_TRAIN_DATA, FILE_READ);
+	// remove duplicate adjacent peaks
+	fftMaxPeaks.erase(
+		std::remove(fftMaxPeaks.begin(), fftMaxPeaks.end(), 0),
+		fftMaxPeaks.end());
 
-	return 0;
-}
-
-int deleteTrainingDataSDCardFile() {
-
-	if (!SD.exists(FILENAME_TRAIN_DATA)) {
-#ifdef DEBUG_SDCARD
-		Util::printMsg("deleteTrainingDataSDCardFile() : file does not exist.");
-#endif
-		return 0;
+	for (size_t m = 0; m < fftMaxPeaks.size(); m++)
+	{
+		fftMaxPeaks.erase(
+			std::remove(fftMaxPeaks.begin(), fftMaxPeaks.end(), fftMaxPeaks[m] + 1),
+			fftMaxPeaks.end());
+		fftMaxPeaks.erase(
+			std::remove(fftMaxPeaks.begin(), fftMaxPeaks.end(), fftMaxPeaks[m] - 1),
+			fftMaxPeaks.end());
+		fftMaxPeaks.erase(
+			std::remove(fftMaxPeaks.begin(), fftMaxPeaks.end(), fftMaxPeaks[m] + 2),
+			fftMaxPeaks.end());
+		fftMaxPeaks.erase(
+			std::remove(fftMaxPeaks.begin(), fftMaxPeaks.end(), fftMaxPeaks[m] - 2),
+			fftMaxPeaks.end());		
 	}
-	return SD.remove(FILENAME_TRAIN_DATA);
+
+	// checking of max peaks are not the same from previous fft
+	int similarityCount = 0;
+	for (size_t m = 0; m < fftMaxPeaks.size(); m++)
+	{
+		for (size_t n = 0; n < lastFFTMaxPeaks.size(); n++)
+		{
+			int deltaPeaks = abs(lastFFTMaxPeaks[n] - fftMaxPeaks[m]);
+			if (deltaPeaks < 2) similarityCount++;
+		}
+	}
+	if (similarityCount > 2) {
+		Util::printMsg("--s--");
+		return false;
+	}
+
+	vector<float> peakValues;
+	for (auto& peakIndex : fftMaxPeaks) {
+		peakValues.push_back(fftOutput[peakIndex]);
+	}
+	Util::printMsgInts("\nFFT Max Peak Indexes => ", fftMaxPeaks);
+	Util::printMsgFloats("FFT Max Peak VALUES => ", peakValues);
+
+	lastFFTOutput = fftOutput;
+	lastFFTMaxPeaks = fftMaxPeaks;
+	return true;
+
 }
 
 void addTrainingSet(vector<nn_double> &idealOutput) {
 	
-	if (!fft1.available()) return;
-
-	int parser = NN_INPUT_SIZE - 1;
-	while (--parser > 1 && fft1.read(parser) < FFT_SUM_ADD_TRAININGSET_THRES);
-	if (parser > 1) {
+	if (!fft1.available())	return;
+	if (!detectAttack())	return;
 
 #ifdef DEBUG
-		Serial.println("--- Adding new FFT training set... ---");
+	Serial.println("--- Adding new FFT training set... ---");
 #endif
 		
-		for (int i = 0; i < NN_INPUT_SIZE; i++) {
-			realInputData->inputValues[i] = fft1.read(i);
-		}
+	int fftSize = lastFFTMaxPeaks.size();
+	for (int i = 0; i < NN_INPUT_SIZE; i++) {
+		//realInputData->inputValues[i] = lastFFTOutput[i];
+
+		realInputData->inputValues[i] = lastFFTMaxPeaks[i];
+	}
 
 #ifdef SAVE_TRAINING_DATA_SDCARD
-		saveTrainingSetSDCard(*realInputData);
+	saveTrainingSetSDCard(*realInputData);
 #else
-		realInputData->idealOutputValues = idealOutput;
-		trainingData.push_back(*realInputData);
+	realInputData->idealOutputValues = idealOutput;
+	trainingData.push_back(*realInputData);
 #endif
 
 #ifdef DEBUG
-		Util::printMsgFloats("--- New training set added --- idealOutput : ", { idealOutput[0], idealOutput[1] });
-		Util::printMsgInt("--- Training data SIZE => ", trainingData.size());
+	Util::printMsgFloats("--- New training set added --- idealOutput : ", { idealOutput[0], idealOutput[1] });
+	Util::printMsgInt("--- Training data SIZE => ", trainingData.size());
 #endif
 
 #ifdef DEBUG_MEMORY
-		Util::printMsgInts("Free SRAM AFTER adding TSet #", { trainingData.size(), Memory::getFreeMemory() });
+	Util::printMsgInts("Free SRAM AFTER adding TSet #", { trainingData.size(), Memory::getFreeMemory() });
 #endif
-	}
+
 }
 
 void testNeuralNetwork(NeuralNetwork* nn) {
 
 #ifdef DEBUG_MEMORY
-	Util::printMsgInt("Free SRAM before NN real testing : ", Memory::getFreeMemory());
+	//Util::printMsgInt("Free SRAM before NN real testing : ", Memory::getFreeMemory());
 #endif
 
-	if (!fft1.available()) return;
-
-	int parser = NN_INPUT_SIZE - 1 ;
-	while (--parser > 1 && fft1.read(parser) < FFT_SUM_ADD_TRAININGSET_THRES);
-
-	if (parser > 1) {
+	if (!fft1.available())	return;
+	if (!detectAttack())	return;
 
 #ifdef DEBUG
-		Serial.println("*** Testing NN with real input ***");
+	Serial.println("*** Testing NN with real input ***");
 #endif
 
-		for (int i = 0; i < NN_INPUT_SIZE; i++) {
-			realInputData->inputValues[i] = fft1.read(i);
-		}
-		nn->feedInputs(*realInputData);
-		nn->propagate();
-		nn->printOutput();
+	for (int i = 0; i < NN_INPUT_SIZE; i++) {
+		realInputData->inputValues[i] = lastFFTMaxPeaks[i];
 	}
+	nn->feedInputs(*realInputData);
+	nn->propagate();
+	nn->printOutput();
 }
 
 void initBongoRecordingSelectButtons() {
@@ -256,6 +285,7 @@ void setup() {
 	deleteTrainingDataSDCardFile();
 #endif
 
+	lastFFTOutput.resize(NN_INPUT_SIZE);
 }
 
 void loop() {

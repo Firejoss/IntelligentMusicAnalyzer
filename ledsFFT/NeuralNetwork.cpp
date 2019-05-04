@@ -180,13 +180,11 @@ int NeuralNetwork::propagate() {
 
 			zs[i - 1][j] = sum + biases[i - 1][j];
 
-			if (i != neuronOutputs.size() - 1) {
+			if (i != layersNum - 1) {
 				neuronOutputs[i][j] = layersActivationFn(zs[i - 1][j], false);
+				continue;
 			}
-			else 
-			{
-				neuronOutputs[i][j] = outputActivationFn(zs[i - 1][j], false);
-			}
+			neuronOutputs[i][j] = outputActivationFn(zs[i - 1][j], false);
 		}
 	}
 #ifdef DEBUG
